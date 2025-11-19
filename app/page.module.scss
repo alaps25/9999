@@ -1,0 +1,67 @@
+@import '../styles/variables';
+
+.page {
+  min-height: 100vh;
+  padding-top: 72px;
+  padding-bottom: 48px;
+  padding-left: 0;
+  padding-right: 0;
+  display: flex;
+  flex-direction: row;
+  gap: $spacing-xl; // 32px gap between nav and content
+  align-items: flex-start;
+  max-width: calc(#{$sidebar-width} + #{$spacing-xl} + 900px); // Sidebar + gap + content max = 1188px
+  margin: 0 auto;
+  width: 100%;
+  
+  @media (max-width: $breakpoint-md) {
+    flex-direction: column;
+    gap: 0;
+    max-width: 100%;
+  }
+}
+
+.bioSection {
+  margin-bottom: 0;
+  padding: $spacing-lg;
+  border: 1px solid $accent-primary;
+  border-radius: $radius-lg;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  font-size: 20px;
+  
+  // Apply font to all children
+  * {
+    font-family: $font-family-mono !important;
+    font-size: 20px !important;
+  }
+  
+  :global(p) {
+    white-space: pre-line;
+    font-size: 20px !important;
+  }
+  
+  // Override Typography component styles
+  :global(.typography) {
+    font-size: 20px !important;
+  }
+}
+
+.projectsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  font-family: $font-family-mono;
+  
+  // Apply monospace font to all children
+  * {
+    font-family: $font-family-mono;
+  }
+}
+
+.addProjectButton {
+  margin-top: $spacing-md;
+  display: flex;
+  justify-content: flex-start;
+}
+

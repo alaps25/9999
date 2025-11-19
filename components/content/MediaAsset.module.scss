@@ -1,0 +1,21 @@
+@import '../../styles/variables';
+
+.media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.video {
+  background-color: $gray-100;
+  
+  // Custom video controls styling
+  &::-webkit-media-controls-panel {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.image {
+  object-fit: cover;
+}
+

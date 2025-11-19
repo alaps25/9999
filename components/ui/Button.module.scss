@@ -1,0 +1,138 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.button {
+  @include button-base;
+  
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  
+  // Base button styles from Figma design
+  border: 1px solid $accent-primary;
+  border-radius: 8px;
+  background-color: transparent;
+  color: $accent-primary;
+  font-family: $font-family-sans;
+  font-size: 10px;
+  font-weight: 600; // Medium weight
+  letter-spacing: 0.34em; // 34% letter spacing
+  padding: 12px 20px; // Based on text position (x:20, y:10)
+  min-height: 32px; // Based on frame height
+  
+  // Remove any default browser button styles and mousedown effects
+  &:active {
+    transform: none;
+    box-shadow: none;
+    outline: none;
+  }
+  
+  // Variants
+  &.primary {
+    background-color: $accent-primary;
+    color: $accent-secondary;
+    border-color: $accent-primary;
+    
+    &:hover:not(:disabled) {
+      background-color: $gray-900;
+      border-color: $gray-900;
+      border-width: 2px;
+    }
+    
+    &:active:not(:disabled),
+    &:focus:not(:disabled) {
+      outline: none;
+    }
+  }
+  
+  &.secondary {
+    background-color: $accent-secondary;
+    color: $accent-primary;
+    border: 1px solid $accent-primary;
+    
+    &:hover:not(:disabled) {
+      background-color: $gray-50;
+      border-width: 2px;
+    }
+    
+    &:active:not(:disabled),
+    &:focus:not(:disabled) {
+      outline: none;
+    }
+  }
+  
+  &.outline {
+    background-color: transparent;
+    color: $accent-primary;
+    border: 1px solid $accent-primary;
+    
+    &:hover:not(:disabled) {
+      background-color: $gray-50;
+      border-width: 2px;
+    }
+    
+    &:active:not(:disabled),
+    &:focus:not(:disabled) {
+      outline: none;
+    }
+  }
+  
+  // Sizes
+  &.sm {
+    padding: 8px 16px;
+    font-size: 9px;
+    min-height: 28px;
+  }
+  
+  &.md {
+    padding: 10px 20px; // Default matches Figma design
+    font-size: 10px;
+    min-height: 32px;
+  }
+  
+  &.lg {
+    padding: 12px 24px;
+    font-size: 11px;
+    min-height: 36px;
+  }
+  
+  // Full width
+  &.fullWidth {
+    width: 100%;
+  }
+  
+  // Icon-only button (square)
+  &.iconOnly {
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    
+    &.sm {
+      width: 28px;
+      height: 28px;
+      min-width: 28px;
+      min-height: 28px;
+    }
+    
+    &.lg {
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
+    }
+  }
+  
+  // Font weight modifiers
+  &.bold {
+    font-weight: 700;
+  }
+  
+  &.textLg {
+    font-size: 1.125rem;
+  }
+  
+}
+

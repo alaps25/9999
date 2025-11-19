@@ -1,0 +1,13 @@
+@import '../../styles/variables';
+
+.projectCard {
+  padding-top: 8px;
+  padding-bottom: 24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  border: 1px solid $accent-primary;
+  border-radius: 12px;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+}
+

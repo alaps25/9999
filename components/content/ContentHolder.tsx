@@ -1,0 +1,121 @@
+import React from 'react'
+import { cn } from '@/lib/utils'
+import { Typography } from '@/components/ui/Typography'
+import { PhotoCarousel } from './PhotoCarousel'
+import type { Project } from '@/lib/firebase/types'
+import styles from './ContentHolder.module.scss'
+
+export interface ContentHolderProps {
+  project?: Project
+  title?: string
+  description?: string
+  images?: string[]
+  metadata?: {
+    company?: string
+    year?: string
+    type?: string
+  }
+  content?: {
+    showTitle?: boolean
+    showDescription?: boolean
+    showPhotoCarousel?: boolean
+    showSlides?: boolean
+    showSingleImage?: boolean
+    showTextOnly?: boolean
+    showMetadata?: boolean
+  }
+  className?: string
+}
+
+/**
+ * ContentHolder component - A flexible container for portfolio content
+ * Supports toggleable features: title, description, photo carousel, metadata
+ */
+export const ContentHolder: React.FC<ContentHolderProps> = ({
+  project,
+  title,
+  description,
+  images,
+  metadata,
+  content = {
+    showTitle: true,
+    showDescription: true,
+    showPhotoCarousel: true,
+    showMetadata: true,
+  },
+  className,
+}) => {
+  // Use project data if provided, otherwise use direct props
+  const displayTitle = project?.title || title
+  const displayDescription = project?.description || description
+  const displayImages = project?.images || images || []
+  const displayMetadata = metadata || {
+    company: project?.company,
+    year: project?.year,
+    type: project?.type,
+  }
+
+  // Merge project content config with props
+  const contentConfig = project?.content
+    ? { ...content, ...project.content }
+    : content
+
+  return (
+    <div className={cn(styles.contentHolder, className)}>
+      {/* Metadata */}
+      {contentConfig.showMetadata && displayMetadata && (
+        <div className={styles.metadata}>
+          {displayMetadata.company && (
+            <span className="uppercase">{displayMetadata.company}</span>
+          )}
+          {displayMetadata.year && (
+            <>
+              <span className={styles.separator}></span>
+              <span>{displayMetadata.year}</span>
+            </>
+          )}
+          {displayMetadata.type && (
+            <>
+              <span className={styles.separator}></span>
+              <span className="uppercase">{displayMetadata.type}</span>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Title */}
+      {contentConfig.showTitle && displayTitle && (
+        <Typography variant="h3" className="font-bold">
+          {displayTitle}
+        </Typography>
+      )}
+
+      {/* Description - Always show above carousel */}
+      {contentConfig.showDescription && displayDescription && (
+        <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
+          {displayDescription}
+        </Typography>
+      )}
+
+      {/* Photo Carousel / Slides / Single Image */}
+      {contentConfig.showSingleImage && project?.singleImage && (
+        <div className="w-full">
+          <PhotoCarousel singleImage={project.singleImage} variant="single" />
+        </div>
+      )}
+      
+      {contentConfig.showSlides && project?.slides && project.slides.length > 0 && (
+        <div className="w-full">
+          <PhotoCarousel slides={project.slides} variant="slides" />
+        </div>
+      )}
+      
+      {contentConfig.showPhotoCarousel && displayImages.length > 0 && (
+        <div className="w-full">
+          <PhotoCarousel images={displayImages} variant="carousel" />
+        </div>
+      )}
+    </div>
+  )
+}
+

@@ -1,0 +1,37 @@
+// SCSS Mixins
+@import './variables';
+
+// Responsive breakpoint mixin
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == md {
+    @media (max-width: $breakpoint-md) {
+      @content;
+    }
+  }
+}
+
+// Focus ring mixin
+@mixin focus-ring($color: $accent-primary) {
+  outline: none;
+  box-shadow: 0 0 0 2px $accent-secondary, 0 0 0 4px $color;
+}
+
+// Button base styles mixin
+@mixin button-base {
+  font-weight: 500;
+  transition: border-width $transition-base, background-color $transition-base;
+  cursor: pointer;
+  // Border is set in component-specific styles, not here
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  // Remove any active/mousedown effects
+  &:active {
+    transform: none;
+    box-shadow: none;
+  }
+}
+

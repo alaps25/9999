@@ -1,0 +1,24 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.mainContent {
+  flex: 1;
+  min-height: 100vh;
+  background-color: $accent-secondary;
+  padding-right: $spacing-2xl;
+  padding-top: 0;
+  padding-bottom: 0;
+  
+  @include respond-to(md) {
+    padding-left: $spacing-md;
+    padding-right: $spacing-md;
+  }
+}
+
+.container {
+  max-width: 900px; // Modern standard for content columns
+  margin: 0 auto;
+  width: 100%;
+  padding: 0;
+}
+

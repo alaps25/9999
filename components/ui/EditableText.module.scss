@@ -1,0 +1,64 @@
+@import '../../styles/variables';
+
+.editableText {
+  cursor: text;
+  outline: none;
+  min-width: 1ch;
+  display: inline-block;
+  
+  &:empty::before {
+    content: attr(data-placeholder);
+    color: $gray-400;
+    pointer-events: none;
+  }
+  
+  &:focus,
+  &.editing {
+    outline: 1px dashed $accent-primary;
+    outline-offset: 2px;
+    background-color: rgba(0, 0, 0, 0.02);
+    border-radius: 2px;
+  }
+  
+  // Typography variants
+  &.h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  
+  &.h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  
+  &.h3 {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  &.h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  
+  &.body {
+    font-size: 10px;
+    line-height: 1.5;
+  }
+  
+  &.caption {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+  
+  &.label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+}
+

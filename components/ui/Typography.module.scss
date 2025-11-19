@@ -1,0 +1,55 @@
+@import '../../styles/variables';
+
+.typography {
+  margin: 0;
+  
+  // Variants
+  &.h1 {
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: $accent-primary;
+    line-height: 1.2;
+  }
+  
+  &.h2 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: $accent-primary;
+    line-height: 1.3;
+  }
+  
+  &.h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: $accent-primary;
+    line-height: 1.4;
+  }
+  
+  &.h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: $accent-primary;
+    line-height: 1.4;
+  }
+  
+  &.body {
+    font-size: 10px;
+    color: $gray-700;
+    line-height: 1.5;
+  }
+  
+  &.caption {
+    font-size: 0.875rem;
+    color: $gray-500;
+    line-height: 1.5;
+  }
+  
+  &.label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: $accent-primary;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
