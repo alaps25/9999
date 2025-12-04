@@ -10,10 +10,16 @@
   text-align: center;
   
   // Base button styles from Figma design
-  border: 1px solid $accent-primary;
-  border-radius: 8px;
+  //border: 1px solid $accent-primary;
+  outline: 1px solid $accent-primary;
   background-color: transparent;
   color: $accent-primary;
+  
+  // Reset browser defaults for <a> and <button> elements
+  text-decoration: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   font-family: $font-family-sans;
   font-size: 10px;
   font-weight: 600; // Medium weight
@@ -25,56 +31,61 @@
   &:active {
     transform: none;
     box-shadow: none;
-    outline: none;
+    // Keep outline visible on active state
   }
   
-  // Variants
-  &.primary {
+  // Variants - Emphasis levels
+  &.high {
     background-color: $accent-primary;
     color: $accent-secondary;
-    border-color: $accent-primary;
+    outline-color: $accent-primary;
     
     &:hover:not(:disabled) {
-      background-color: $gray-900;
-      border-color: $gray-900;
-      border-width: 2px;
+      background-color: $accent-primary;
+      color: $accent-secondary;
+      outline-color: $accent-primary;
     }
     
     &:active:not(:disabled),
     &:focus:not(:disabled) {
-      outline: none;
+      // Keep outline visible on active/focus states
+      outline: 1px solid $accent-primary;
     }
   }
   
-  &.secondary {
+  &.medium {
     background-color: $accent-secondary;
     color: $accent-primary;
-    border: 1px solid $accent-primary;
+    outline: 1px solid $accent-primary;
     
     &:hover:not(:disabled) {
-      background-color: $gray-50;
-      border-width: 2px;
+      background-color: $accent-primary;
+      color: $accent-secondary;
+      outline-color: $accent-primary;
     }
     
     &:active:not(:disabled),
     &:focus:not(:disabled) {
-      outline: none;
+      // Keep outline visible on active/focus states
+      outline: 1px solid $accent-primary;
     }
   }
   
-  &.outline {
+  &.low {
     background-color: transparent;
     color: $accent-primary;
-    border: 1px solid $accent-primary;
+    outline: transparent;
     
     &:hover:not(:disabled) {
-      background-color: $gray-50;
-      border-width: 2px;
+      background-color: $accent-primary;
+      color: $accent-secondary;
+      outline-color: $accent-primary;
     }
     
     &:active:not(:disabled),
     &:focus:not(:disabled) {
-      outline: none;
+      // Keep outline visible on active/focus states
+      outline: 1px solid $accent-primary;
     }
   }
   
@@ -132,6 +143,25 @@
   
   &.textLg {
     font-size: 1.125rem;
+  }
+  
+  // Stacked modifier - uses outline instead of border to avoid double borders when stacked
+  &.stacked {
+    outline: 1px solid $accent-primary;
+    margin: 0 !important;
+    
+    // All variants use same hover style (black bg, white text)
+    &:hover:not(:disabled) {
+      background-color: $accent-primary;
+      color: $accent-secondary;
+      outline-color: $accent-primary;
+    }
+    
+    // Variant-specific outline colors
+    &.high,
+    &.low {
+      outline-color: $accent-primary;
+    }
   }
   
 }

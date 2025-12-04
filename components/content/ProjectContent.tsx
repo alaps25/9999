@@ -24,12 +24,21 @@ export interface ProjectContentProps {
     showSingleImage?: boolean
     showTextOnly?: boolean
     showMetadata?: boolean
+    layout?: 'vertical' | 'horizontal' // V Card (vertical) or H Card (horizontal)
   }
   className?: string
   isEditable?: boolean
+  variant?: 'project' | 'bio'
   onFieldChange?: (field: keyof Project, value: string) => void
+  onBioChange?: (value: string) => void
   onAddSlide?: () => void
   onSlideDescriptionChange?: (slideId: string, description: string) => void
+  onMediaChange?: (files: File[]) => void
+  onMediaDelete?: (index?: number) => void
+  onSlideImageChange?: (slideId: string, files: File[]) => void
+  onSlideImageDelete?: (slideId: string) => void
+  onSlideDelete?: (slideId: string) => void
+  onNavigateToSlide?: (index: number) => void
 }
 
 /**
@@ -50,9 +59,17 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   },
   className,
   isEditable = false,
+  variant = 'project',
   onFieldChange,
+  onBioChange,
   onAddSlide,
   onSlideDescriptionChange,
+  onMediaChange,
+  onMediaDelete,
+  onSlideImageChange,
+  onSlideImageDelete,
+  onSlideDelete,
+  onNavigateToSlide,
 }) => {
   // Use project data if provided, otherwise use direct props
   const displayTitle = project?.title || title
@@ -69,111 +86,170 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
     ? { ...content, ...project.content }
     : content
 
+  // Determine layout: vertical (V Card) or horizontal (H Card)
+  const layout = contentConfig.layout || 'vertical'
+  const isHorizontal = layout === 'horizontal'
+  
+  // Detect "Big text" variant: no title, no metadata, only description, no media
+  const isBigText = !contentConfig.showTitle && 
+                    contentConfig.showDescription && 
+                    !contentConfig.showSingleImage && 
+                    !contentConfig.showSlides && 
+                    !contentConfig.showPhotoCarousel &&
+                    !contentConfig.showMetadata &&
+                    variant !== 'bio'
+
+  // Check if there's any media content to show (including placeholders)
+  // Media cards always show placeholder, so they always have "content"
+  const hasMediaContent = 
+    contentConfig.showSingleImage || // Always true for Media cards, even if empty
+    (contentConfig.showSlides && project?.slides && project.slides.length > 0) ||
+    (contentConfig.showPhotoCarousel && displayImages.length > 0)
+
+  // Check if there's any text content to show
+  const hasTextContent = 
+    (contentConfig.showTitle && displayTitle) ||
+    (contentConfig.showDescription && displayDescription) ||
+    (contentConfig.showMetadata && displayMetadata && (displayMetadata.company || displayMetadata.year || displayMetadata.type))
+
   return (
-    <div className={cn(styles.contentHolder, className)}>
-      {/* Metadata */}
-      {contentConfig.showMetadata && displayMetadata && (
-        <div className={styles.metadata}>
-          {displayMetadata.company && (
-            isEditable && project ? (
+    <div className={cn(
+      styles.contentHolder,
+      isHorizontal && styles.horizontal,
+      !hasMediaContent && styles.noMediaGap,
+      className
+    )}>
+      {/* Element 1: Text Content (Title, Description, Metadata) - Only render if there's content */}
+      {hasTextContent && (
+        <div className={styles.textContent}>
+        {/* Title */}
+        {contentConfig.showTitle && displayTitle && (
+          isEditable && project ? (
+            <EditableText
+              value={displayTitle}
+              onChange={(value) => onFieldChange?.('title', value)}
+              variant="h3"
+              className="font-bold"
+              as="div"
+            />
+          ) : (
+          <Typography variant="h3" className="font-bold">
+            {displayTitle}
+          </Typography>
+          )
+        )}
+
+        {/* Description */}
+        {contentConfig.showDescription && displayDescription && (
+          variant === 'bio' || isBigText ? (
+            isEditable ? (
               <EditableText
-                value={displayMetadata.company}
-                onChange={(value) => onFieldChange?.('company', value)}
+                value={displayDescription}
+                onChange={(value) => onBioChange?.(value)}
                 variant="body"
-                className="uppercase"
+                className={cn(styles.description, styles.bioDescription)}
+                as="div"
               />
             ) : (
-            <span className="uppercase">{displayMetadata.company}</span>
+              <Typography variant="body" className={cn(styles.description, styles.bioDescription)}>
+                {displayDescription}
+              </Typography>
             )
-          )}
-          {displayMetadata.year && (
-            <>
-              <span className={styles.separator}></span>
-              {isEditable && project ? (
+          ) : (
+            isEditable && project ? (
+              <EditableText
+                value={displayDescription}
+                onChange={(value) => onFieldChange?.('description', value)}
+                variant="body"
+                className={cn(styles.description, "text-accent-gray-600")}
+                as="div"
+              />
+            ) : (
+              <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
+                {displayDescription}
+              </Typography>
+            )
+          )
+        )}
+
+        {/* Metadata */}
+        {contentConfig.showMetadata && displayMetadata && (
+          <div className={styles.metadata}>
+            {displayMetadata.company && (
+              isEditable && project ? (
                 <EditableText
-                  value={displayMetadata.year}
-                  onChange={(value) => onFieldChange?.('year', value)}
-                  variant="body"
-                />
-              ) : (
-              <span>{displayMetadata.year}</span>
-              )}
-            </>
-          )}
-          {displayMetadata.type && (
-            <>
-              <span className={styles.separator}></span>
-              {isEditable && project ? (
-                <EditableText
-                  value={displayMetadata.type}
-                  onChange={(value) => onFieldChange?.('type', value)}
+                  value={displayMetadata.company}
+                  onChange={(value) => onFieldChange?.('company', value)}
                   variant="body"
                   className="uppercase"
                 />
               ) : (
-              <span className="uppercase">{displayMetadata.type}</span>
-              )}
-            </>
+              <span className="uppercase">{displayMetadata.company}</span>
+              )
+            )}
+            {displayMetadata.year && (
+              <>
+                <span className={styles.separator}></span>
+                {isEditable && project ? (
+                  <EditableText
+                    value={displayMetadata.year}
+                    onChange={(value) => onFieldChange?.('year', value)}
+                    variant="body"
+                  />
+                ) : (
+                <span>{displayMetadata.year}</span>
+                )}
+              </>
+            )}
+            {displayMetadata.type && (
+              <>
+                <span className={styles.separator}></span>
+                {isEditable && project ? (
+                  <EditableText
+                    value={displayMetadata.type}
+                    onChange={(value) => onFieldChange?.('type', value)}
+                    variant="body"
+                    className="uppercase"
+                  />
+                ) : (
+                <span className="uppercase">{displayMetadata.type}</span>
+                )}
+              </>
+            )}
+          </div>
+        )}
+        </div>
+      )}
+
+      {/* Element 2: Media Content - Only render if there's media to show */}
+      {hasMediaContent && (
+        <div className={styles.mediaContent}>
+          {contentConfig.showSingleImage && (
+            <MediaCarousel 
+              singleImage={project?.singleImage || ''} 
+              variant="single" 
+              isEditable={isEditable}
+              onMediaChange={onMediaChange}
+              onMediaDelete={onMediaDelete}
+            />
           )}
-        </div>
-      )}
-
-      {/* Title */}
-      {contentConfig.showTitle && displayTitle && (
-        isEditable && project ? (
-          <EditableText
-            value={displayTitle}
-            onChange={(value) => onFieldChange?.('title', value)}
-            variant="h3"
-            className="font-bold"
-            as="div"
-          />
-        ) : (
-        <Typography variant="h3" className="font-bold">
-          {displayTitle}
-        </Typography>
-        )
-      )}
-
-      {/* Description - Always show above carousel */}
-      {contentConfig.showDescription && displayDescription && (
-        isEditable && project ? (
-          <EditableText
-            value={displayDescription}
-            onChange={(value) => onFieldChange?.('description', value)}
-            variant="body"
-            className={cn(styles.description, "text-accent-gray-600")}
-            as="div"
-          />
-        ) : (
-        <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
-          {displayDescription}
-        </Typography>
-        )
-      )}
-
-      {/* Media Carousel / Slides / Single Media */}
-      {contentConfig.showSingleImage && project?.singleImage && (
-        <div className="w-full">
-          <MediaCarousel singleImage={project.singleImage} variant="single" />
-        </div>
-      )}
-      
-      {contentConfig.showSlides && project?.slides && project.slides.length > 0 && (
-        <div className="w-full">
-          <MediaCarousel
-            slides={project.slides}
-            variant="slides"
-            isEditable={isEditable}
-            onAddSlide={onAddSlide}
-            onSlideDescriptionChange={onSlideDescriptionChange}
-          />
-        </div>
-      )}
-      
-      {contentConfig.showPhotoCarousel && displayImages.length > 0 && (
-        <div className="w-full">
-          <MediaCarousel images={displayImages} variant="carousel" />
+          
+          {contentConfig.showSlides && project?.slides && project.slides.length > 0 && (
+            <MediaCarousel
+              slides={project.slides}
+              variant="slides"
+              isEditable={isEditable}
+              onAddSlide={onAddSlide}
+              onSlideDescriptionChange={onSlideDescriptionChange}
+              onSlideImageChange={onSlideImageChange}
+              onSlideImageDelete={onSlideImageDelete}
+              onSlideDelete={onSlideDelete}
+            />
+          )}
+          
+          {contentConfig.showPhotoCarousel && displayImages.length > 0 && (
+            <MediaCarousel images={displayImages} variant="carousel" />
+          )}
         </div>
       )}
     </div>

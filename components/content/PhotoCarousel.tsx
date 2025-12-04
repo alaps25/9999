@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/Button'
 import { MediaDisplay } from './MediaDisplay'
 import { Slide } from './Slide'
 import type { Slide as SlideType } from '@/lib/firebase/types'
@@ -63,11 +64,15 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
     }
 
     const goToPrevious = () => {
-      setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
+      if (currentIndex > 0) {
+        setCurrentIndex((prev) => prev - 1)
+      }
     }
 
     const goToNext = () => {
-      setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1))
+      if (currentIndex < slides.length - 1) {
+        setCurrentIndex((prev) => prev + 1)
+      }
     }
 
     const goToSlide = (index: number) => {
@@ -90,22 +95,26 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
             {/* Navigation Buttons - Always at bottom */}
             {slides.length > 1 && (
               <div className={styles.navButtons}>
-                <button
+                <Button
+                  variant="low"
+                  size="md"
+                  iconOnly
                   onClick={goToPrevious}
-                  className={cn(styles.navButtonSquare, currentIndex === 0 && styles.disabled)}
                   aria-label="Previous slide"
                   disabled={currentIndex === 0}
                 >
                   <ArrowLeft size={16} />
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="low"
+                  size="md"
+                  iconOnly
                   onClick={goToNext}
-                  className={cn(styles.navButtonSquare, currentIndex === slides.length - 1 && styles.disabled)}
                   aria-label="Next slide"
                   disabled={currentIndex === slides.length - 1}
                 >
                   <ArrowRight size={16} />
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -125,11 +134,15 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
   }
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1)
+    }
   }
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex((prev) => prev + 1)
+    }
   }
 
   const goToSlide = (index: number) => {
@@ -144,22 +157,26 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
           {/* Navigation Buttons */}
           {images.length > 1 && (
             <div className={styles.navButtons}>
-              <button
+              <Button
+                variant="low"
+                size="md"
+                iconOnly
                 onClick={goToPrevious}
-                className={cn(styles.navButtonSquare, currentIndex === 0 && styles.disabled)}
                 aria-label="Previous image"
                 disabled={currentIndex === 0}
               >
                 <ArrowLeft size={16} />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="low"
+                size="md"
+                iconOnly
                 onClick={goToNext}
-                className={cn(styles.navButtonSquare, currentIndex === images.length - 1 && styles.disabled)}
                 aria-label="Next image"
                 disabled={currentIndex === images.length - 1}
               >
                 <ArrowRight size={16} />
-              </button>
+              </Button>
             </div>
           )}
         </div>

@@ -1,6 +1,7 @@
-import { doc, updateDoc, collection, addDoc, getDocs } from 'firebase/firestore'
+import { doc, updateDoc, collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore'
 import { db } from './config'
 import type { Project, MenuItem, Slide } from './types'
+import { generateSlug, generateUniqueSlug } from '../utils/slug'
 
 /**
  * Check if Firebase is configured
@@ -60,6 +61,7 @@ export async function updateMenuItem(itemId: string, updates: Partial<MenuItem>)
 
 /**
  * Add new menu item to Firestore
+ * Automatically generates slug from label and sets href
  */
 export async function addMenuItem(item: Omit<MenuItem, 'id'>): Promise<string> {
   if (!isFirebaseConfigured()) {
@@ -68,11 +70,29 @@ export async function addMenuItem(item: Omit<MenuItem, 'id'>): Promise<string> {
   }
 
   try {
+    // Get existing slugs to ensure uniqueness
     const menuRef = collection(db!, 'menu')
+    const q = query(menuRef, orderBy('order', 'asc'))
+    const existingItems = await getDocs(q)
+    const existingSlugs = existingItems.docs
+      .map(doc => doc.data().slug)
+      .filter(Boolean) as string[]
+    
+    // Generate slug from label
+    const slug = item.slug || generateUniqueSlug(item.label, existingSlugs)
+    
     const docRef = await addDoc(menuRef, {
       ...item,
+      slug: slug,
       order: Date.now(), // Use timestamp as order
     })
+    
+    // Update href to match slug
+    const href = `/${slug}`
+    await updateDoc(doc(db!, 'menu', docRef.id), {
+      href: href,
+    })
+    
     return docRef.id
   } catch (error) {
     console.error('Error adding menu item:', error)

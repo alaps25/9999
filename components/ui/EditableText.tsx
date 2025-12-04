@@ -26,12 +26,19 @@ export const EditableText: React.FC<EditableTextProps> = ({
   variant,
 }) => {
   const [isEditing, setIsEditing] = useState(false)
-  const [localValue, setLocalValue] = useState(value)
+  const [mounted, setMounted] = useState(false)
   const contentRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    setLocalValue(value)
-  }, [value])
+    setMounted(true)
+  }, [])
+
+  // Update content when value changes externally (but not while editing)
+  useEffect(() => {
+    if (!isEditing && contentRef.current && contentRef.current.textContent !== value) {
+      contentRef.current.textContent = value
+    }
+  }, [value, isEditing])
 
   const handleFocus = () => {
     setIsEditing(true)
@@ -39,14 +46,14 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   const handleBlur = () => {
     setIsEditing(false)
-    if (localValue !== value) {
-      onChange(localValue)
+    const finalValue = contentRef.current?.textContent || ''
+    if (finalValue !== value) {
+      onChange(finalValue)
     }
   }
 
-  const handleInput = (e: React.FormEvent<HTMLElement>) => {
-    const newValue = e.currentTarget.textContent || ''
-    setLocalValue(newValue)
+  const handleInput = () => {
+    // Content is managed by contentEditable, we just read it on blur
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLElement>) => {
@@ -55,17 +62,26 @@ export const EditableText: React.FC<EditableTextProps> = ({
       contentRef.current?.blur()
     }
     if (e.key === 'Escape') {
-      setLocalValue(value)
+      if (contentRef.current) {
+        contentRef.current.textContent = value
+      }
       contentRef.current?.blur()
     }
   }
 
-  // Set initial content on mount
-  useEffect(() => {
-    if (contentRef.current && contentRef.current.textContent !== localValue) {
-      contentRef.current.textContent = localValue
-    }
-  }, [localValue])
+  if (!mounted) {
+    return (
+      <Component
+        className={cn(
+          styles.editableText,
+          variant && styles[variant],
+          className
+        )}
+      >
+        {value}
+      </Component>
+    )
+  }
 
   return (
     <Component
@@ -84,7 +100,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       )}
       data-placeholder={placeholder}
     >
-      {localValue}
+      {value}
     </Component>
   )
 }

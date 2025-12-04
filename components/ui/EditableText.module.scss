@@ -14,10 +14,18 @@
   
   &:focus,
   &.editing {
-    outline: 1px dashed $accent-primary;
-    outline-offset: 2px;
-    background-color: rgba(0, 0, 0, 0.02);
-    border-radius: 2px;
+    outline: none;
+    background-color: transparent;
+    // Thick blinking cursor like terminal/DOS
+    caret-color: $accent-primary;
+    // Use text-shadow to simulate thicker cursor (browser limitation)
+    // The native caret will blink, we just make it appear thicker
+  }
+  
+  // For browsers that support caret-width
+  &:focus,
+  &.editing {
+    caret-width: 3px;
   }
   
   // Typography variants

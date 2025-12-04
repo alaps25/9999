@@ -1,39 +1,20 @@
-import { Sidebar } from '@/components/layout/Sidebar'
-import { MainContent } from '@/components/layout/MainContent'
-import { ProjectCard } from '@/components/content/ProjectCard'
-import { Typography } from '@/components/ui/Typography'
-import { getPortfolioData } from '@/lib/firebase/queries'
-import styles from './page.module.scss'
+import { redirect } from 'next/navigation'
+import { getMenuItems } from '@/lib/firebase/queries'
 
 export default async function Home() {
-  const portfolioData = await getPortfolioData()
-
+  // Always redirect to the first page
+  const menuItems = await getMenuItems()
+  
+  if (menuItems.length > 0) {
+    // Use the menu item slug (defaults to "page" for first item)
+    const firstPageSlug = menuItems[0].slug || 'page'
+    redirect(`/${firstPageSlug}`)
+  }
+  
+  // Fallback: if no menu items exist, show empty state
   return (
-    <div className={styles.page}>
-      <Sidebar menuItems={portfolioData.menuItems} />
-      <MainContent>
-        {/* Bio Section */}
-        {portfolioData.bio && (
-          <div className={styles.bioSection}>
-            <Typography variant="body">
-              {portfolioData.bio.text}
-            </Typography>
-          </div>
-        )}
-
-        {/* Projects Section */}
-        <div className={styles.projectsSection}>
-          {portfolioData.sections.map((section) => {
-            if (section.type === 'project' && section.project) {
-              return (
-                <ProjectCard key={section.id} project={section.project} />
-              )
-            }
-            return null
-          })}
-        </div>
-      </MainContent>
+    <div style={{ padding: '2rem', textAlign: 'center' }}>
+      <p>No pages available. Please create a page first.</p>
     </div>
   )
 }
-

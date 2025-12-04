@@ -1,7 +1,7 @@
 import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
 import { db } from './config'
 import type { PortfolioData, Project, MenuItem } from './types'
-import { mockPortfolioData, mockMenuItems, mockProjects, mockBio } from '../mockData'
+import { generateSlug, generateUniqueSlug } from '../utils/slug'
 
 /**
  * Check if Firebase is configured
@@ -15,12 +15,17 @@ function isFirebaseConfigured(): boolean {
 
 /**
  * Fetch all menu items from Firestore
- * Falls back to mock data if Firebase is not configured
+ * Ensures at least one default menu item exists
  */
 export async function getMenuItems(): Promise<MenuItem[]> {
   if (!isFirebaseConfigured() || !db) {
-    console.log('Firebase not configured, using mock data')
-    return mockMenuItems
+    console.log('Firebase not configured, returning default menu item')
+    return [{
+      id: 'default',
+      label: 'PAGE',
+      href: '/',
+      isActive: true,
+    }]
   }
 
   try {
@@ -33,11 +38,65 @@ export async function getMenuItems(): Promise<MenuItem[]> {
       ...doc.data(),
     })) as MenuItem[]
     
-    // Fallback to mock data if no items found
-    return items.length > 0 ? items : mockMenuItems
+    // Ensure at least one menu item exists
+    if (items.length === 0) {
+      // Create default menu item with slug-based URL
+      const { addDoc, updateDoc, doc: docFn } = await import('firebase/firestore')
+      const defaultSlug = 'page' // Default slug for first page
+      const defaultItem = {
+        label: 'PAGE',
+        slug: defaultSlug,
+        order: 0,
+      }
+      const docRef = await addDoc(menuRef, defaultItem)
+      return [{
+        id: docRef.id,
+        ...defaultItem,
+        href: `/${defaultSlug}`, // Keep href for backward compatibility
+      }]
+    }
+    
+    // Ensure all items have slugs - generate from label if missing
+    const { updateDoc, doc: docFn } = await import('firebase/firestore')
+    const existingSlugs = items.map(item => item.slug).filter(Boolean) as string[]
+    const updatedItems = await Promise.all(
+      items.map(async (item, index) => {
+        if (!item.slug) {
+          // Generate slug from label
+          const slug = index === 0 && item.label.toUpperCase() === 'PAGE' 
+            ? 'page' // First item with "PAGE" label gets "page" slug
+            : generateUniqueSlug(item.label, existingSlugs)
+          
+          existingSlugs.push(slug)
+          
+          // Update in database
+          await updateDoc(docFn(db, 'menu', item.id), {
+            slug: slug,
+            href: `/${slug}`, // Update href to match slug
+          })
+          return { ...item, slug, href: `/${slug}` }
+        }
+        // Update href to match slug if it doesn't match
+        if (!item.href || item.href !== `/${item.slug}`) {
+          await updateDoc(docFn(db, 'menu', item.id), {
+            href: `/${item.slug}`,
+          })
+          return { ...item, href: `/${item.slug}` }
+        }
+        return item
+      })
+    )
+    
+    return updatedItems
   } catch (error) {
-    console.error('Error fetching menu items, using mock data:', error)
-    return mockMenuItems
+    console.error('Error fetching menu items:', error)
+    // Return default item on error
+    return [{
+      id: 'default',
+      label: 'PAGE',
+      href: '/',
+      isActive: true,
+    }]
   }
 }
 
@@ -47,7 +106,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
  */
 export async function getProjects(): Promise<Project[]> {
   if (!isFirebaseConfigured() || !db) {
-    return mockProjects
+    return []
   }
 
   try {
@@ -60,11 +119,10 @@ export async function getProjects(): Promise<Project[]> {
       ...doc.data(),
     })) as Project[]
     
-    // Fallback to mock data if no projects found
-    return projects.length > 0 ? projects : mockProjects
+    return projects
   } catch (error) {
-    console.error('Error fetching projects, using mock data:', error)
-    return mockProjects
+    console.error('Error fetching projects:', error)
+    return []
   }
 }
 
@@ -73,7 +131,7 @@ export async function getProjects(): Promise<Project[]> {
  */
 export async function getProject(id: string): Promise<Project | null> {
   if (!isFirebaseConfigured() || !db) {
-    return mockProjects.find(p => p.id === id) || null
+    return null
   }
 
   try {
@@ -99,7 +157,7 @@ export async function getProject(id: string): Promise<Project | null> {
  */
 export async function getBio(): Promise<{ text: string } | null> {
   if (!isFirebaseConfigured() || !db) {
-    return mockBio
+    return null
   }
 
   try {
@@ -110,29 +168,51 @@ export async function getBio(): Promise<{ text: string } | null> {
       const bioDoc = querySnapshot.docs[0]
       return bioDoc.data() as { text: string }
     }
-    return mockBio
+    return null
   } catch (error) {
-    console.error('Error fetching bio, using mock data:', error)
-    return mockBio
+    console.error('Error fetching bio:', error)
+    return null
   }
 }
 
 /**
  * Fetch portfolio data (menu items, sections, and bio)
- * Falls back to mock data if Firebase is not configured
+ * Optionally filter by page slug
  */
-export async function getPortfolioData(): Promise<PortfolioData> {
+export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData> {
   if (!isFirebaseConfigured()) {
-    console.log('Using mock portfolio data')
-    return mockPortfolioData
+    console.log('Firebase not configured, returning empty portfolio data')
+    return {
+      menuItems: [],
+      sections: [],
+      bio: null,
+    }
   }
 
   try {
-    const [menuItems, projects, bio] = await Promise.all([
+    const [menuItems, allProjects, bio] = await Promise.all([
       getMenuItems(),
       getProjects(),
       getBio(),
     ])
+
+    // Filter projects by page - pageSlug is the menu item slug (e.g., "page")
+    // Find the menu item by slug to get its ID
+    let pageId: string | undefined
+    
+    if (pageSlug) {
+      // Find menu item by slug
+      const pageMenuItem = menuItems.find(item => item.slug === pageSlug)
+      pageId = pageMenuItem?.id
+    } else if (menuItems.length > 0) {
+      // Fallback: use first menu item if no slug provided
+      pageId = menuItems[0].id
+    }
+
+    // Filter projects by pageId - always require pageId
+    const projects = pageId 
+      ? allProjects.filter(p => p.pageId === pageId)
+      : [] // If no pageId found, return empty array
 
     const sections = projects.map((project) => ({
       id: project.id,
@@ -141,13 +221,17 @@ export async function getPortfolioData(): Promise<PortfolioData> {
     }))
 
     return {
-      menuItems: menuItems.length > 0 ? menuItems : mockMenuItems,
-      sections: sections.length > 0 ? sections : mockPortfolioData.sections,
-      bio: bio || mockBio,
+      menuItems,
+      sections,
+      bio,
     }
   } catch (error) {
-    console.error('Error fetching portfolio data, using mock data:', error)
-    return mockPortfolioData
+    console.error('Error fetching portfolio data:', error)
+    return {
+      menuItems: [],
+      sections: [],
+      bio: null,
+    }
   }
 }
 

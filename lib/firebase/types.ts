@@ -5,7 +5,8 @@
 export interface MenuItem {
   id: string
   label: string
-  href?: string
+  slug?: string // URL-friendly slug based on label (e.g., "PAGE" -> "page")
+  href?: string // Deprecated: use slug instead, kept for backward compatibility
   isActive?: boolean
 }
 
@@ -26,8 +27,9 @@ export interface Project {
   description: string
   images?: string[]
   slides?: Slide[]
-  singleImage?: string // For variant 1: single photo without carousel
+  singleImage?: string | string[] // For variant 1: single photo or multiple photos (carousel)
   tags?: string[]
+  pageId?: string // Associate project with a page (menu item)
   content?: {
     showTitle?: boolean
     showDescription?: boolean
@@ -36,6 +38,8 @@ export interface Project {
     showSingleImage?: boolean
     showTextOnly?: boolean
     showTags?: boolean
+    showMetadata?: boolean
+    layout?: 'vertical' | 'horizontal' // V Card (vertical) or H Card (horizontal)
   }
 }
 

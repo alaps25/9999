@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { ArrowLeft, ArrowRight } from 'lucide-react'
+import React, { useState, useEffect, useRef } from 'react'
+import { ArrowLeft, ArrowRight, Trash2, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MediaAsset } from './MediaAsset'
 import { CarouselSlide } from './CarouselSlide'
 import { EditableText } from '@/components/ui/EditableText'
+import { Button } from '@/components/ui/Button'
 import { AddButton } from '@/components/ui/AddButton'
 import type { Slide as SlideType } from '@/lib/firebase/types'
 import styles from './MediaCarousel.module.scss'
@@ -13,12 +14,19 @@ import styles from './MediaCarousel.module.scss'
 export interface MediaCarouselProps {
   images?: string[]
   slides?: SlideType[]
-  singleImage?: string
+  singleImage?: string | string[] // Can be single image URL or array of URLs for carousel
   variant?: 'single' | 'carousel' | 'slides'
   className?: string
   isEditable?: boolean
-  onAddSlide?: () => void
+  onAddSlide?: () => void | Promise<void> // Can return a promise that resolves with the new slide index
+  onNavigateToSlide?: (index: number) => void // Callback to navigate to a specific slide index
   onSlideDescriptionChange?: (slideId: string, description: string) => void
+  onMediaChange?: (files: File[]) => void // Now accepts array of files
+  onMediaDelete?: (index?: number) => void // Optional index to delete specific image (for carousel). If not provided, deletes all.
+  onSlideImageChange?: (slideId: string, files: File[]) => void // Added for slide image upload
+  onSlideImageDelete?: (slideId: string) => void // Added for slide image deletion
+  onSlideDelete?: (slideId: string) => void // Added for deleting entire slide
+  singleFileOnly?: boolean // If true, only allow single file selection (for slides)
 }
 
 /**
@@ -37,25 +45,286 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   isEditable = false,
   onAddSlide,
   onSlideDescriptionChange,
+  onMediaChange,
+  onMediaDelete,
+  onSlideImageChange,
+  onSlideImageDelete,
+  onSlideDelete,
+  singleFileOnly = false,
+  onNavigateToSlide,
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Hooks for single variant - must be at top level
+  const [isHovered, setIsHovered] = useState(false)
+  const [mediaIndex, setMediaIndex] = useState(0)
+  const singleFileInputRef = useRef<HTMLInputElement>(null)
+  
+  // Track previous slides length to detect new slide additions (for slides variant)
+  const prevSlidesLengthRef = useRef(slides?.length || 0)
+  
+  // Track previous singleImage array length to detect additions/deletions (for single variant)
+  const prevSingleImageLengthRef = useRef(0)
+  const currentMediaIndexRef = useRef(0)
 
   // Reset index when slides/images change
   useEffect(() => {
     setCurrentIndex(0)
   }, [slides, images, singleImage])
+  
+  // Sync mediaIndex with ref
+  useEffect(() => {
+    currentMediaIndexRef.current = mediaIndex
+  }, [mediaIndex])
+  
+  // Adjust mediaIndex when singleImage array changes (for single variant)
+  useEffect(() => {
+    if (variant === 'single') {
+      const mediaArray = Array.isArray(singleImage) ? singleImage : (singleImage ? [singleImage] : [])
+      const currentLength = mediaArray.length
+      const prevLength = prevSingleImageLengthRef.current
+      const currentIndex = currentMediaIndexRef.current
+      
+      // If array length increased (new images added), navigate to the last image
+      if (currentLength > prevLength && currentLength > 0) {
+        setMediaIndex(currentLength - 1)
+      }
+      // If array length decreased (image was deleted), adjust index
+      else if (currentLength < prevLength && currentLength > 0) {
+        // If current index is out of bounds, go to last available image
+        if (currentIndex >= currentLength) {
+          setMediaIndex(currentLength - 1)
+        }
+      } else if (currentLength === 0) {
+        // If all images deleted, reset to 0
+        setMediaIndex(0)
+      }
+      
+      prevSingleImageLengthRef.current = currentLength
+    }
+  }, [variant, singleImage])
 
-  // Variant 1: Single image/video/gif (no carousel)
-  if (variant === 'single' && singleImage) {
+  // Navigate to last slide when a new slide is added (for slides variant)
+  useEffect(() => {
+    if (variant === 'slides' && slides && slides.length > 0) {
+      if (slides.length > prevSlidesLengthRef.current) {
+        // New slide was added, navigate to it
+        setCurrentIndex(slides.length - 1)
+      }
+      prevSlidesLengthRef.current = slides.length
+    }
+  }, [variant, slides])
+
+  // Handle placeholder click for single image variant
+  const handlePlaceholderClick = () => {
+    if (isEditable && variant === 'single' && fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  // Handle file selection (supports multiple files)
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0 && onMediaChange) {
+      // Validate file types (images, videos, GIFs)
+      const validTypes = [
+        'image/jpeg',
+        'image/jpg',
+        'image/png',
+        'image/gif',
+        'image/webp',
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
+      ]
+      
+      const validFiles = files.filter(file => validTypes.includes(file.type))
+      
+      if (validFiles.length > 0) {
+        onMediaChange(validFiles)
+      } else {
+        alert('Please select valid image or video files')
+      }
+    }
+    
+    // Reset input so same files can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  // Variant 1: Single image/video/gif (or carousel if multiple)
+  if (variant === 'single') {
+    
+    // Handle both single string and array of strings
+    const mediaArray = Array.isArray(singleImage) ? singleImage : (singleImage ? [singleImage] : [])
+    const hasMedia = mediaArray.length > 0
+    const isMultiple = mediaArray.length > 1
+    const currentMedia = mediaArray[mediaIndex] || ''
+
+    const goToPrevious = () => {
+      if (mediaIndex > 0) {
+        setMediaIndex((prev) => prev - 1)
+      }
+    }
+
+    const goToNext = () => {
+      if (mediaIndex < mediaArray.length - 1) {
+        setMediaIndex((prev) => prev + 1)
+      }
+    }
+    
+    const isAtStart = mediaIndex === 0
+    const isAtEnd = mediaIndex === mediaArray.length - 1
+
+    const handleSinglePlaceholderClick = () => {
+      if (isEditable && singleFileInputRef.current) {
+        singleFileInputRef.current.click()
+      }
+    }
+
+    const handleSingleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || [])
+      if (files.length > 0 && onMediaChange) {
+        // Validate file types (images, videos, GIFs)
+        const validTypes = [
+          'image/jpeg',
+          'image/jpg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'video/mp4',
+          'video/webm',
+          'video/quicktime',
+        ]
+        
+        const validFiles = files.filter(file => validTypes.includes(file.type))
+        
+        if (validFiles.length > 0) {
+          // If singleFileOnly is true, only take the first file
+          const filesToUse = singleFileOnly ? [validFiles[0]] : validFiles
+          onMediaChange(filesToUse)
+        } else {
+          alert('Please select valid image or video files')
+        }
+      }
+      
+      // Reset input so same files can be selected again
+      if (singleFileInputRef.current) {
+        singleFileInputRef.current.value = ''
+      }
+    }
+
     return (
       <div className={cn(styles.carousel, styles.singleImage, className)}>
-        <div className={styles.singleImageContainer}>
-          <MediaAsset
-            src={singleImage}
-            alt="Project media"
-            priority
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+        <div 
+          className={cn(
+            styles.singleImageContainer,
+            hasMedia && styles.hasMedia
+          )}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          {/* File input for this variant */}
+          <input
+            ref={singleFileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple={!singleFileOnly}
+            onChange={handleSingleFileChange}
+            style={{ display: 'none' }}
           />
+          
+          {hasMedia ? (
+            <>
+              <MediaAsset
+                src={currentMedia}
+                alt={`Project media ${mediaIndex + 1}`}
+                priority={mediaIndex === 0}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+              />
+              
+              {/* Bottom right button row: arrows (if multiple) + add + delete - show on hover */}
+              {isHovered && (
+                <div className={styles.bottomRightButtons}>
+                  {/* Navigation arrows - only show if multiple */}
+                  {isMultiple && (
+                    <>
+                      <Button
+                        variant="medium"
+                        size="md"
+                        iconOnly
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          goToPrevious()
+                        }}
+                        aria-label="Previous media"
+                        disabled={isAtStart}
+                      >
+                        <ArrowLeft size={16} />
+                      </Button>
+                      <Button
+                        variant="medium"
+                        size="md"
+                        iconOnly
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          goToNext()
+                        }}
+                        aria-label="Next media"
+                        disabled={isAtEnd}
+                      >
+                        <ArrowRight size={16} />
+                      </Button>
+                    </>
+                  )}
+                  {/* Action buttons - only show if editable */}
+                  {isEditable && (
+                    <>
+                      {/* Add more media button - only show if not singleFileOnly */}
+                      {onMediaChange && !singleFileOnly && (
+                        <Button
+                          variant="medium"
+                          size="md"
+                          iconOnly
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleSinglePlaceholderClick()
+                          }}
+                          aria-label="Add more media"
+                        >
+                          <Plus size={16} />
+                        </Button>
+                      )}
+                      {onMediaDelete && (
+                        <Button
+                          variant="medium"
+                          size="md"
+                          iconOnly
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            // Pass current mediaIndex to delete only the current image
+                            onMediaDelete(mediaIndex)
+                          }}
+                          aria-label="Delete media"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div 
+              className={cn(styles.placeholder, isEditable && styles.placeholderClickable)}
+              onClick={handleSinglePlaceholderClick}
+            >
+              <span className={styles.placeholderText}>Add media</span>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -72,11 +341,15 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
     }
 
     const goToPrevious = () => {
-      setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
+      if (currentIndex > 0) {
+        setCurrentIndex((prev) => prev - 1)
+      }
     }
 
     const goToNext = () => {
-      setCurrentIndex((prev) => (prev === slides.length - 1 ? 0 : prev + 1))
+      if (currentIndex < slides.length - 1) {
+        setCurrentIndex((prev) => prev + 1)
+      }
     }
 
     const goToSlide = (index: number) => {
@@ -108,42 +381,72 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
               )}
             </div>
             
-            {/* Navigation Buttons - Always at bottom */}
+            {/* Navigation buttons at bottom left - always visible */}
             <div className={styles.navButtonsContainer}>
-            {slides.length > 1 && (
               <div className={styles.navButtons}>
-                <button
-                  onClick={goToPrevious}
-                  className={cn(styles.navButtonSquare, currentIndex === 0 && styles.disabled)}
-                  aria-label="Previous slide"
-                  disabled={currentIndex === 0}
-                >
-                  <ArrowLeft size={16} />
-                </button>
-                <button
-                  onClick={goToNext}
-                  className={cn(styles.navButtonSquare, currentIndex === slides.length - 1 && styles.disabled)}
-                  aria-label="Next slide"
-                  disabled={currentIndex === slides.length - 1}
-                >
-                  <ArrowRight size={16} />
-                </button>
+                {/* Navigation arrows - only show if multiple slides */}
+                {slides.length > 1 && (
+                  <>
+                    <Button
+                      variant="medium"
+                      size="md"
+                      iconOnly
+                      onClick={goToPrevious}
+                      aria-label="Previous slide"
+                      disabled={currentIndex === 0}
+                    >
+                      <ArrowLeft size={16} />
+                    </Button>
+                    <Button
+                      variant="medium"
+                      size="md"
+                      iconOnly
+                      onClick={goToNext}
+                      aria-label="Next slide"
+                      disabled={currentIndex === slides.length - 1}
+                    >
+                      <ArrowRight size={16} />
+                    </Button>
+                  </>
+                )}
+                {/* Add slide button - only show if editable */}
+                {isEditable && onAddSlide && (
+                  <Button
+                    variant="medium"
+                    size="md"
+                    iconOnly
+                    onClick={onAddSlide}
+                    aria-label="Add slide"
+                  >
+                    <Plus size={16} />
+                  </Button>
+                )}
+                {/* Delete slide button - only show if editable and more than one slide */}
+                {isEditable && onSlideDelete && slides.length > 1 && (
+                  <Button
+                    variant="medium"
+                    size="md"
+                    iconOnly
+                    onClick={() => onSlideDelete(currentSlide.id)}
+                    aria-label="Delete slide"
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                )}
               </div>
-            )}
-              {isEditable && onAddSlide && (
-                <AddButton
-                  onClick={onAddSlide}
-                  label="Add Slide"
-                  size="md"
-                  className={styles.addSlideButton}
-                />
-              )}
             </div>
           </div>
 
-          {/* Right Side: Slide Media/Content Only */}
+          {/* Right Side: Slide Media/Content Only - Use MediaCarousel single variant */}
           <div className={styles.rightContent}>
-            <CarouselSlide slide={currentSlide} />
+            <MediaCarousel
+              singleImage={currentSlide.image || ''}
+              variant="single"
+              isEditable={isEditable}
+              singleFileOnly={true}
+              onMediaChange={(files) => onSlideImageChange?.(currentSlide.id, files)}
+              onMediaDelete={() => onSlideImageDelete?.(currentSlide.id)}
+            />
           </div>
         </div>
       </div>
@@ -156,11 +459,15 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   }
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1)
+    }
   }
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))
+    if (currentIndex < images.length - 1) {
+      setCurrentIndex((prev) => prev + 1)
+    }
   }
 
   const goToSlide = (index: number) => {
@@ -175,22 +482,26 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
           {/* Navigation Buttons */}
           {images.length > 1 && (
             <div className={styles.navButtons}>
-              <button
+              <Button
+                variant="low"
+                size="md"
+                iconOnly
                 onClick={goToPrevious}
-                className={cn(styles.navButtonSquare, currentIndex === 0 && styles.disabled)}
                 aria-label="Previous image"
                 disabled={currentIndex === 0}
               >
                 <ArrowLeft size={16} />
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="low"
+                size="md"
+                iconOnly
                 onClick={goToNext}
-                className={cn(styles.navButtonSquare, currentIndex === images.length - 1 && styles.disabled)}
                 aria-label="Next image"
                 disabled={currentIndex === images.length - 1}
               >
                 <ArrowRight size={16} />
-              </button>
+              </Button>
             </div>
           )}
         </div>
