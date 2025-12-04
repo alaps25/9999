@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
-import { MediaDisplay } from './MediaDisplay'
-import { Slide } from './Slide'
+import { MediaAsset } from './MediaAsset'
+import { CarouselSlide } from './CarouselSlide'
 import type { Slide as SlideType } from '@/lib/firebase/types'
 import styles from './PhotoCarousel.module.scss'
 
@@ -42,7 +42,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
     return (
       <div className={cn(styles.carousel, styles.singleImage, className)}>
         <div className={styles.singleImageContainer}>
-          <MediaDisplay
+          <MediaAsset
             src={singleImage}
             alt="Project media"
             priority
@@ -121,7 +121,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
 
           {/* Right Side: Slide Image/Content Only */}
           <div className={styles.rightContent}>
-            <Slide slide={currentSlide} />
+            <CarouselSlide slide={currentSlide} />
           </div>
         </div>
       </div>
@@ -184,7 +184,7 @@ export const PhotoCarousel: React.FC<PhotoCarouselProps> = ({
         {/* Right Side: Media Only (image/video/gif) */}
         <div className={styles.rightContent}>
           <div className={styles.imageContainer}>
-            <MediaDisplay
+            <MediaAsset
               src={images[currentIndex]}
               alt={`Slide ${currentIndex + 1}`}
               priority={currentIndex === 0}

@@ -57,8 +57,13 @@ export async function getMenuItems(): Promise<MenuItem[]> {
     }
     
     // Ensure all items have slugs - generate from label if missing
+    if (!db) {
+      return items
+    }
+    
     const { updateDoc, doc: docFn } = await import('firebase/firestore')
     const existingSlugs = items.map(item => item.slug).filter(Boolean) as string[]
+    const dbInstance = db // Store in local variable for TypeScript
     const updatedItems = await Promise.all(
       items.map(async (item, index) => {
         if (!item.slug) {
@@ -70,7 +75,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
           existingSlugs.push(slug)
           
           // Update in database
-          await updateDoc(docFn(db, 'menu', item.id), {
+          await updateDoc(docFn(dbInstance, 'menu', item.id), {
             slug: slug,
             href: `/${slug}`, // Update href to match slug
           })
@@ -78,7 +83,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
         }
         // Update href to match slug if it doesn't match
         if (!item.href || item.href !== `/${item.slug}`) {
-          await updateDoc(docFn(db, 'menu', item.id), {
+          await updateDoc(docFn(dbInstance, 'menu', item.id), {
             href: `/${item.slug}`,
           })
           return { ...item, href: `/${item.slug}` }
@@ -86,6 +91,8 @@ export async function getMenuItems(): Promise<MenuItem[]> {
         return item
       })
     )
+    
+    return updatedItems
     
     return updatedItems
   } catch (error) {
@@ -185,7 +192,7 @@ export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData
     return {
       menuItems: [],
       sections: [],
-      bio: null,
+      bio: undefined,
     }
   }
 
@@ -223,14 +230,14 @@ export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData
     return {
       menuItems,
       sections,
-      bio,
+      bio: bio || undefined, // Convert null to undefined
     }
   } catch (error) {
     console.error('Error fetching portfolio data:', error)
     return {
       menuItems: [],
       sections: [],
-      bio: null,
+      bio: undefined,
     }
   }
 }

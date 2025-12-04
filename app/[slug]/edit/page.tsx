@@ -17,6 +17,7 @@ import {
   updateProjectSlides,
 } from '@/lib/firebase/mutations'
 import type { PortfolioData, Project, MenuItem, Slide } from '@/lib/firebase/types'
+import { generateSlug } from '@/lib/utils/slug'
 import styles from '../../page.module.scss'
 
 interface EditPageProps {
