@@ -19,12 +19,12 @@
 // Button base styles mixin
 @mixin button-base {
   font-weight: 500;
-  transition: border-width $transition-base, background-color $transition-base;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, border-color 0.2s ease-in-out, outline-color 0.2s ease-in-out;
   cursor: pointer;
   // Border is set in component-specific styles, not here
   
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.2;
     cursor: not-allowed;
   }
   

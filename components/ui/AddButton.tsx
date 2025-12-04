@@ -9,8 +9,9 @@ export interface AddButtonProps {
   label?: string
   className?: string
   size?: 'sm' | 'md' | 'lg'
-  variant?: 'primary' | 'secondary' | 'outline'
+  variant?: 'high' | 'medium' | 'low'
   iconOnly?: boolean
+  stacked?: boolean
 }
 
 /**
@@ -22,8 +23,9 @@ export const AddButton: React.FC<AddButtonProps> = ({
   label,
   className,
   size = 'md',
-  variant = 'outline',
+  variant = 'low',
   iconOnly = true,
+  stacked = false,
 }) => {
   // Icon size based on button size
   const iconSize = size === 'sm' ? 14 : size === 'lg' ? 18 : 16
@@ -34,6 +36,7 @@ export const AddButton: React.FC<AddButtonProps> = ({
       variant={variant}
       size={size}
       iconOnly={iconOnly}
+      stacked={stacked}
       className={className}
       aria-label={label || 'Add new item'}
       type="button"

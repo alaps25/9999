@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Menu collection - read for all, write restricted
+    match /menu/{document=**} {
+      allow read: if true;
+      allow write: if false; // Only admins can write via Firebase Console or authenticated admin
+    }
+    
+    // Projects collection - read for all, write restricted
+    match /projects/{document=**} {
+      allow read: if true;
+      allow write: if false; // Only admins can write via Firebase Console or authenticated admin
+    }
+    
+    // Bio collection - read for all, write restricted
+    match /bio/{document=**} {
+      allow read: if true;
+      allow write: if false; // Only admins can write via Firebase Console or authenticated admin
+    }
+  }
+}
+

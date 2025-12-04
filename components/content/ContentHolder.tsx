@@ -100,7 +100,10 @@ export const ContentHolder: React.FC<ContentHolderProps> = ({
       {/* Photo Carousel / Slides / Single Image */}
       {contentConfig.showSingleImage && project?.singleImage && (
         <div className="w-full">
-          <PhotoCarousel singleImage={project.singleImage} variant="single" />
+          <PhotoCarousel 
+            singleImage={Array.isArray(project.singleImage) ? project.singleImage[0] : project.singleImage} 
+            variant="single" 
+          />
         </div>
       )}
       

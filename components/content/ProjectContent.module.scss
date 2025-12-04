@@ -4,12 +4,84 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: $spacing-lg; // 24px gap between textContent and mediaContent
+  
+  // Remove gap when there's no media content (Big text, Media card without content)
+  &.noMediaGap {
+    gap: 0;
+  }
+  
+  // Horizontal layout (H Card)
+  &.horizontal {
+    flex-direction: row;
+    align-items: flex-start;
+    
+    // Still remove gap for horizontal layout when no media
+    &.noMediaGap {
+      gap: 0;
+    }
+    
+    // In horizontal layout, constrain text content width so it wraps instead of shrinking image
+    .textContent {
+      width: 30%; // Limit text to half the width, allowing it to wrap
+      flex: 0 1 auto; // Don't grow, allow shrinking, auto basis
+      min-width: 0; // Allow text to wrap
+    }
+    
+    // In horizontal layout, ensure media content maintains minimum size
+    .mediaContent {
+      flex: 0 0 auto; // Don't grow or shrink, maintain natural size
+      min-width: 70%; // Minimum width for image/media
+    }
+  }
+}
+
+.textContent {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+  min-width: 0; // Allow text wrapping
   
   // Specific gap between title and description (4px instead of default 24px gap)
   .description {
-    margin-top: -20px; // Counteract the 24px gap to achieve 4px spacing
+    
+    word-wrap: break-word; // Allow long words to wrap
+    overflow-wrap: break-word; // Modern property for word wrapping
+    max-width: 100%; // Ensure description doesn't exceed container
   }
+  
+  // Metadata is grouped with title+description, so reduce gap above it
+  .metadata {
+    
+  }
+  
+  // Bio variant - large font size
+  .bioDescription {
+    font-size: 20px !important;
+    font-family: $font-family-mono !important;
+    margin-top: 0; // No negative margin for bio
+    white-space: pre-line;
+    
+    // Override Typography and EditableText variant styles
+    :global(.typography),
+    :global(.editableText) {
+      font-size: 20px !important;
+      font-family: $font-family-mono !important;
+    }
+    
+    // Apply font to all children
+    * {
+      font-family: $font-family-mono !important;
+      font-size: 20px !important;
+    }
+  }
+}
+
+.mediaContent {
+  flex: 1;
+  min-width: 0; // Allow flex shrinking
+  display: flex;
+  flex-direction: column;
 }
 
 .metadata {
@@ -17,10 +89,21 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 10px;
-  color: $gray-400;
+  font-weight: 500;
   font-family: $font-family-sans;
+  max-width: 200px;
+  overflow: hidden;
+  
+  // Truncate individual metadata items
+  > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
   
   .separator {
+    flex-shrink: 0; // Prevent separator from shrinking
     &::before {
       content: '|';
       margin: 0 0.5rem;

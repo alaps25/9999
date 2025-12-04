@@ -31,9 +31,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, className, onAddIte
           return (
             <Button
               key={item.id}
-              variant={isActive ? 'primary' : 'outline'}
+                      variant={isActive ? 'high' : 'low'}
               href={item.href || '#'}
               asLink
+              stacked
               className={styles.menuButton}
             >
               {typeof item.label === 'string' ? item.label : item.label}
@@ -45,6 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, className, onAddIte
             onClick={onAddItem}
             label="Add Page"
             size="md"
+            stacked
             className={styles.addMenuItemButton}
           />
         )}
