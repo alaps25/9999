@@ -62,11 +62,9 @@ export const mockMenuItems: MenuItem[] = [
 export const mockProjects: Project[] = [
   {
     id: '1',
-    company: 'COMPANY',
-    year: '2014',
-    type: 'EXPERIMENT',
     title: 'Project title',
     description: 'Description',
+    tags: ['COMPANY', '2014', 'EXPERIMENT'],
     // Variant 1: Single image (no carousel)
     singleImage: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=800&h=600&fit=crop',
     content: {
@@ -76,15 +74,14 @@ export const mockProjects: Project[] = [
       showPhotoCarousel: false,
       showSlides: false,
       showTextOnly: false,
+      showTags: true,
     },
   },
   {
     id: '2',
-    company: 'COMPANY',
-    year: '2014',
-    type: 'EXPERIMENT',
     title: 'Project title',
     description: 'Description',
+    tags: ['COMPANY', '2014', 'EXPERIMENT'],
     // Variant 2: Slides carousel (blocks with text and images)
     slides: [
       {
@@ -111,15 +108,14 @@ export const mockProjects: Project[] = [
       showPhotoCarousel: false,
       showSingleImage: false,
       showTextOnly: false,
+      showTags: true,
     },
   },
   {
     id: '3',
-    company: 'COMPANY',
-    year: '2015',
-    type: 'ARTICLE',
     title: 'Case Study: Building Scalable Systems',
     description: 'A deep dive into architectural decisions and how we evolved our system to handle millions of requests per day. This case study covers database scaling, caching strategies, microservices architecture, and real-time data processing. We implemented Redis for caching, migrated to microservices, added message queues for async processing, and optimized database queries. The results were impressive - we achieved 99.9% uptime and reduced response times by 60%.',
+    tags: ['COMPANY', '2015', 'ARTICLE'],
     // Variant 3: Text-only (only title and description, no images/slides)
     content: {
       showTitle: true,
@@ -128,6 +124,7 @@ export const mockProjects: Project[] = [
       showPhotoCarousel: false,
       showSlides: false,
       showSingleImage: false,
+      showTags: true,
     },
   },
 ]

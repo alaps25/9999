@@ -8,6 +8,14 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+  gap: 12px; // Spacing between text and icons
+  
+  // Prevent SVG icons from shrinking and set default size
+  svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+  }
   
   // Base button styles from Figma design
   //border: 1px solid $accent-primary;
@@ -120,6 +128,7 @@
     height: 32px;
     min-width: 32px;
     min-height: 32px;
+    gap: 0; // No gap needed for icon-only buttons
     
     &.sm {
       width: 28px;

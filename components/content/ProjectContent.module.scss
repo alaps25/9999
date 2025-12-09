@@ -50,10 +50,6 @@
     max-width: 100%; // Ensure description doesn't exceed container
   }
   
-  // Metadata is grouped with title+description, so reduce gap above it
-  .metadata {
-    
-  }
   
   // Bio variant - large font size
   .bioDescription {
@@ -84,30 +80,35 @@
   flex-direction: column;
 }
 
-.metadata {
+.tags {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 10px;
   font-weight: 500;
   font-family: $font-family-sans;
-  max-width: 200px;
-  overflow: hidden;
+  width: 100%; // Use all available horizontal space
+  flex-wrap: wrap; // Allow tags to wrap
   
-  // Truncate individual metadata items
-  > span {
+  .tagDisplay {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    width: 100%; // Use all available space
+  }
+  
+  .tag {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 100%;
+    max-width: 100px; // Truncate individual tags after 100px width
   }
   
   .separator {
     flex-shrink: 0; // Prevent separator from shrinking
-    &::before {
-      content: '|';
-      margin: 0 0.5rem;
-    }
+    color: $accent-primary;
+    margin: 0 0.25rem;
   }
 }
 

@@ -1,0 +1,96 @@
+@import '../../styles/variables';
+
+.tagInput {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: $font-family-sans;
+  max-width: 100%;
+  
+  .tag {
+    display: inline-block;
+    cursor: text;
+    max-width: 100px; // Truncate after 100px width
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    
+    &.placeholderTag {
+      color: $gray-400;
+    }
+  }
+  
+  .separator {
+    flex-shrink: 0;
+    color: $accent-primary;
+    margin: 0 0.25rem;
+  }
+  
+  .tagEditor {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tagInputField {
+    display: inline-block;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: $font-family-sans;
+    font-size: 10px;
+    font-weight: 500;
+    color: $accent-primary;
+    padding: 0;
+    margin: 0;
+    min-width: 50px;
+    max-width: 100px;
+    
+    &::placeholder {
+      color: $gray-400;
+      opacity: 1;
+    }
+    
+    &:focus {
+      outline: none;
+    }
+  }
+  
+  .suggestions {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    background-color: $accent-secondary;
+    outline: 1px solid $accent-primary;
+    margin-top: 2px;
+    min-width: 150px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .suggestionItem {
+    display: block;
+    width: 100%;
+    padding: 8px 12px;
+    text-align: left;
+    background: none;
+    border: none;
+    outline: none;
+    font-family: $font-family-sans;
+    font-size: 10px;
+    color: $accent-primary;
+    cursor: pointer;
+    
+    &:hover {
+      background-color: rgba($accent-primary, 0.1);
+    }
+  }
+  
+  .addButton {
+    flex-shrink: 0;
+  }
+}
+

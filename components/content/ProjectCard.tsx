@@ -11,7 +11,7 @@ export interface ProjectCardProps {
   className?: string
   isEditable?: boolean
   noPadding?: boolean // For Media cards - removes padding
-  onFieldChange?: (field: keyof Project, value: string) => void
+  onFieldChange?: (field: keyof Project, value: string | string[]) => void
   onBioChange?: (value: string) => void
   onAddSlide?: () => void
   onSlideDescriptionChange?: (slideId: string, description: string) => void
@@ -20,6 +20,7 @@ export interface ProjectCardProps {
   onSlideImageChange?: (slideId: string, files: File[]) => void
   onSlideImageDelete?: (slideId: string) => void
   onSlideDelete?: (slideId: string) => void
+  uploadingStates?: Record<number | string, boolean> // Loading states for images/slides
 }
 
 /**
@@ -43,6 +44,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onSlideImageChange,
   onSlideImageDelete,
   onSlideDelete,
+  uploadingStates,
 }) => {
   return (
     <div className={cn(styles.projectCard, noPadding && styles.noPadding, className)}>
@@ -51,7 +53,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           variant="bio"
           description={bioText}
           content={{
-            showMetadata: false,
+            showTags: false,
             showTitle: false,
             showDescription: true,
             showPhotoCarousel: false,
@@ -75,6 +77,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           onSlideImageChange={onSlideImageChange}
           onSlideImageDelete={onSlideImageDelete}
           onSlideDelete={onSlideDelete}
+          uploadingStates={uploadingStates}
         />
       )}
     </div>

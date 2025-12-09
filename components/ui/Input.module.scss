@@ -1,0 +1,93 @@
+@import '../../styles/variables';
+@import '../../styles/mixins';
+
+.input {
+  // Reuse button base styles (padding, font, etc.) but override outline
+  display: inline-block;
+  width: auto;
+  
+  // Base input styles - reuses button styles
+  background-color: transparent;
+  color: $accent-primary;
+  
+  // Reset browser defaults
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-family: $font-family-sans;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  padding: 12px 20px;
+  min-height: 32px;
+  
+  // Transition from button-base mixin
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+  
+  // Custom border opacity: top, right, left = 30%, bottom = 100%
+  // Use border instead of outline for individual side control
+  border-top: 1px solid rgba($accent-primary, 0.3);
+  border-right: 1px solid rgba($accent-primary, 0.3);
+  border-left: 1px solid rgba($accent-primary, 0.3);
+  border-bottom: 1px solid $accent-primary; // 100% opacity
+  
+  // Remove outline (we're using border instead)
+  outline: none;
+  
+  // Remove border-radius
+  border-radius: 0;
+  
+  // Placeholder styling
+  &::placeholder {
+    color: rgba($accent-primary, 0.5);
+    opacity: 1;
+  }
+  
+  // Focus state - keep borders visible
+  &:focus {
+    border-top-color: rgba($accent-primary, 0.3);
+    border-right-color: rgba($accent-primary, 0.3);
+    border-left-color: rgba($accent-primary, 0.3);
+    border-bottom-color: $accent-primary;
+    outline: none;
+  }
+  
+  // Disabled state
+  &:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+  }
+  
+  // Error state
+  &.error {
+    border-top-color: rgba($accent-primary, 0.3);
+    border-right-color: rgba($accent-primary, 0.3);
+    border-left-color: rgba($accent-primary, 0.3);
+    border-bottom-color: $accent-primary;
+  }
+  
+  // Sizes
+  &.sm {
+    padding: 8px 16px;
+    min-height: 28px;
+    font-size: 9px;
+  }
+  
+  &.md {
+    padding: 12px 20px;
+    min-height: 32px;
+    font-size: 10px;
+  }
+  
+  &.lg {
+    padding: 16px 24px;
+    min-height: 40px;
+    font-size: 12px;
+  }
+  
+  // Full width
+  &.fullWidth {
+    width: 100%;
+  }
+}
+

@@ -134,7 +134,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
       >
         <span className={styles.label}>{displayLabel}</span>
         <ChevronDown 
-          size={size === 'sm' ? 12 : size === 'lg' ? 16 : 14} 
+          size={16} 
           className={cn(styles.icon, isOpen && styles.iconOpen)}
         />
       </button>

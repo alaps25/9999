@@ -2,6 +2,7 @@ import React from 'react'
 import { cn } from '@/lib/utils'
 import { Typography } from '@/components/ui/Typography'
 import { EditableText } from '@/components/ui/EditableText'
+import { TagInput } from '@/components/ui/TagInput'
 import { MediaCarousel } from './MediaCarousel'
 import type { Project } from '@/lib/firebase/types'
 import styles from './ProjectContent.module.scss'
@@ -11,11 +12,6 @@ export interface ProjectContentProps {
   title?: string
   description?: string
   images?: string[]
-  metadata?: {
-    company?: string
-    year?: string
-    type?: string
-  }
   content?: {
     showTitle?: boolean
     showDescription?: boolean
@@ -23,13 +19,13 @@ export interface ProjectContentProps {
     showSlides?: boolean
     showSingleImage?: boolean
     showTextOnly?: boolean
-    showMetadata?: boolean
+    showTags?: boolean // Replaces showMetadata
     layout?: 'vertical' | 'horizontal' // V Card (vertical) or H Card (horizontal)
   }
   className?: string
   isEditable?: boolean
   variant?: 'project' | 'bio'
-  onFieldChange?: (field: keyof Project, value: string) => void
+  onFieldChange?: (field: keyof Project, value: string | string[]) => void // Updated to support tags array
   onBioChange?: (value: string) => void
   onAddSlide?: () => void
   onSlideDescriptionChange?: (slideId: string, description: string) => void
@@ -39,6 +35,7 @@ export interface ProjectContentProps {
   onSlideImageDelete?: (slideId: string) => void
   onSlideDelete?: (slideId: string) => void
   onNavigateToSlide?: (index: number) => void
+  uploadingStates?: Record<number | string, boolean> // Loading states for images/slides
 }
 
 /**
@@ -50,12 +47,11 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   title,
   description,
   images,
-  metadata,
   content = {
     showTitle: true,
     showDescription: true,
     showPhotoCarousel: true,
-    showMetadata: true,
+    showTags: true,
   },
   className,
   isEditable = false,
@@ -70,16 +66,13 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   onSlideImageDelete,
   onSlideDelete,
   onNavigateToSlide,
+  uploadingStates = {},
 }) => {
   // Use project data if provided, otherwise use direct props
   const displayTitle = project?.title || title
   const displayDescription = project?.description || description
   const displayImages = project?.images || images || []
-  const displayMetadata = metadata || {
-    company: project?.company,
-    year: project?.year,
-    type: project?.type,
-  }
+  const displayTags = project?.tags || []
 
   // Merge project content config with props
   const contentConfig = project?.content
@@ -90,13 +83,13 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   const layout = contentConfig.layout || 'vertical'
   const isHorizontal = layout === 'horizontal'
   
-  // Detect "Big text" variant: no title, no metadata, only description, no media
+  // Detect "Big text" variant: no title, no tags, only description, no media
   const isBigText = !contentConfig.showTitle && 
                     contentConfig.showDescription && 
                     !contentConfig.showSingleImage && 
                     !contentConfig.showSlides && 
                     !contentConfig.showPhotoCarousel &&
-                    !contentConfig.showMetadata &&
+                    !contentConfig.showTags &&
                     variant !== 'bio'
 
   // Check if there's any media content to show (including placeholders)
@@ -110,7 +103,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   const hasTextContent = 
     (contentConfig.showTitle && displayTitle) ||
     (contentConfig.showDescription && displayDescription) ||
-    (contentConfig.showMetadata && displayMetadata && (displayMetadata.company || displayMetadata.year || displayMetadata.type))
+    (contentConfig.showTags && displayTags.length > 0)
 
   return (
     <div className={cn(
@@ -131,6 +124,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               variant="h3"
               className="font-bold"
               as="div"
+              placeholder="Title"
             />
           ) : (
           <Typography variant="h3" className="font-bold">
@@ -149,6 +143,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
                 variant="body"
                 className={cn(styles.description, styles.bioDescription)}
                 as="div"
+                placeholder={isBigText ? "Big text here..." : "Description"}
               />
             ) : (
               <Typography variant="body" className={cn(styles.description, styles.bioDescription)}>
@@ -163,6 +158,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
                 variant="body"
                 className={cn(styles.description, "text-accent-gray-600")}
                 as="div"
+                placeholder="Description"
               />
             ) : (
               <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
@@ -172,49 +168,26 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
           )
         )}
 
-        {/* Metadata */}
-        {contentConfig.showMetadata && displayMetadata && (
-          <div className={styles.metadata}>
-            {displayMetadata.company && (
-              isEditable && project ? (
-                <EditableText
-                  value={displayMetadata.company}
-                  onChange={(value) => onFieldChange?.('company', value)}
-                  variant="body"
-                  className="uppercase"
-                />
-              ) : (
-              <span className="uppercase">{displayMetadata.company}</span>
+        {/* Tags */}
+        {contentConfig.showTags && (
+          <div className={styles.tags}>
+            {isEditable && project ? (
+              <TagInput
+                tags={displayTags}
+                onChange={(tags) => onFieldChange?.('tags', tags)}
+                placeholder="Tag"
+              />
+            ) : (
+              displayTags.length > 0 && (
+                <div className={styles.tagDisplay}>
+                  {displayTags.map((tag, index) => (
+                    <React.Fragment key={index}>
+                      <span className={styles.tag}>{tag}</span>
+                      {index < displayTags.length - 1 && <span className={styles.separator}>|</span>}
+                    </React.Fragment>
+                  ))}
+                </div>
               )
-            )}
-            {displayMetadata.year && (
-              <>
-                <span className={styles.separator}></span>
-                {isEditable && project ? (
-                  <EditableText
-                    value={displayMetadata.year}
-                    onChange={(value) => onFieldChange?.('year', value)}
-                    variant="body"
-                  />
-                ) : (
-                <span>{displayMetadata.year}</span>
-                )}
-              </>
-            )}
-            {displayMetadata.type && (
-              <>
-                <span className={styles.separator}></span>
-                {isEditable && project ? (
-                  <EditableText
-                    value={displayMetadata.type}
-                    onChange={(value) => onFieldChange?.('type', value)}
-                    variant="body"
-                    className="uppercase"
-                  />
-                ) : (
-                <span className="uppercase">{displayMetadata.type}</span>
-                )}
-              </>
             )}
           </div>
         )}
@@ -231,6 +204,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               isEditable={isEditable}
               onMediaChange={onMediaChange}
               onMediaDelete={onMediaDelete}
+              uploadingStates={uploadingStates}
             />
           )}
           
@@ -244,6 +218,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               onSlideImageChange={onSlideImageChange}
               onSlideImageDelete={onSlideImageDelete}
               onSlideDelete={onSlideDelete}
+              uploadingStates={uploadingStates}
             />
           )}
           

@@ -1,4 +1,4 @@
-import { collection, getDocs, doc, getDoc, query, orderBy } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, query, orderBy, setDoc, where } from 'firebase/firestore'
 import { db } from './config'
 import type { PortfolioData, Project, MenuItem } from './types'
 import { generateSlug, generateUniqueSlug } from '../utils/slug'
@@ -14,10 +14,10 @@ function isFirebaseConfigured(): boolean {
 }
 
 /**
- * Fetch all menu items from Firestore
+ * Fetch all menu items from Firestore for a specific user
  * Ensures at least one default menu item exists
  */
-export async function getMenuItems(): Promise<MenuItem[]> {
+export async function getMenuItems(userId?: string): Promise<MenuItem[]> {
   if (!isFirebaseConfigured() || !db) {
     console.log('Firebase not configured, returning default menu item')
     return [{
@@ -30,7 +30,13 @@ export async function getMenuItems(): Promise<MenuItem[]> {
 
   try {
     const menuRef = collection(db, 'menu')
-    const q = query(menuRef, orderBy('order', 'asc'))
+    let q = query(menuRef, orderBy('order', 'asc'))
+    
+    // Filter by userId if provided
+    if (userId) {
+      q = query(menuRef, where('userId', '==', userId), orderBy('order', 'asc'))
+    }
+    
     const querySnapshot = await getDocs(q)
     
     const items = querySnapshot.docs.map((doc) => ({
@@ -38,8 +44,8 @@ export async function getMenuItems(): Promise<MenuItem[]> {
       ...doc.data(),
     })) as MenuItem[]
     
-    // Ensure at least one menu item exists
-    if (items.length === 0) {
+    // Ensure at least one menu item exists for the user
+    if (items.length === 0 && userId) {
       // Create default menu item with slug-based URL
       const { addDoc, updateDoc, doc: docFn } = await import('firebase/firestore')
       const defaultSlug = 'page' // Default slug for first page
@@ -47,6 +53,7 @@ export async function getMenuItems(): Promise<MenuItem[]> {
         label: 'PAGE',
         slug: defaultSlug,
         order: 0,
+        userId: userId, // Associate with the current user
       }
       const docRef = await addDoc(menuRef, defaultItem)
       return [{
@@ -108,17 +115,22 @@ export async function getMenuItems(): Promise<MenuItem[]> {
 }
 
 /**
- * Fetch all projects from Firestore
- * Falls back to mock data if Firebase is not configured
+ * Fetch all projects from Firestore for a specific user
  */
-export async function getProjects(): Promise<Project[]> {
+export async function getProjects(userId?: string): Promise<Project[]> {
   if (!isFirebaseConfigured() || !db) {
     return []
   }
 
   try {
     const projectsRef = collection(db, 'projects')
-    const q = query(projectsRef, orderBy('order', 'asc'))
+    let q = query(projectsRef, orderBy('order', 'asc'))
+    
+    // Filter by userId if provided
+    if (userId) {
+      q = query(projectsRef, where('userId', '==', userId), orderBy('order', 'asc'))
+    }
+    
     const querySnapshot = await getDocs(q)
     
     const projects = querySnapshot.docs.map((doc) => ({
@@ -159,17 +171,23 @@ export async function getProject(id: string): Promise<Project | null> {
 }
 
 /**
- * Fetch bio data from Firestore
- * Falls back to mock data if Firebase is not configured
+ * Fetch bio data from Firestore for a specific user
  */
-export async function getBio(): Promise<{ text: string } | null> {
+export async function getBio(userId?: string): Promise<{ text: string } | null> {
   if (!isFirebaseConfigured() || !db) {
     return null
   }
 
   try {
     const bioRef = collection(db, 'bio')
-    const querySnapshot = await getDocs(bioRef)
+    let q = query(bioRef)
+    
+    // Filter by userId if provided
+    if (userId) {
+      q = query(bioRef, where('userId', '==', userId))
+    }
+    
+    const querySnapshot = await getDocs(q)
     
     if (!querySnapshot.empty) {
       const bioDoc = querySnapshot.docs[0]
@@ -183,10 +201,10 @@ export async function getBio(): Promise<{ text: string } | null> {
 }
 
 /**
- * Fetch portfolio data (menu items, sections, and bio)
+ * Fetch portfolio data (menu items, sections, and bio) for a specific user
  * Optionally filter by page slug
  */
-export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData> {
+export async function getPortfolioData(pageSlug?: string, userId?: string): Promise<PortfolioData> {
   if (!isFirebaseConfigured()) {
     console.log('Firebase not configured, returning empty portfolio data')
     return {
@@ -198,9 +216,9 @@ export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData
 
   try {
     const [menuItems, allProjects, bio] = await Promise.all([
-      getMenuItems(),
-      getProjects(),
-      getBio(),
+      getMenuItems(userId),
+      getProjects(userId),
+      getBio(userId),
     ])
 
     // Filter projects by page - pageSlug is the menu item slug (e.g., "page")
@@ -239,6 +257,31 @@ export async function getPortfolioData(pageSlug?: string): Promise<PortfolioData
       sections: [],
       bio: undefined,
     }
+  }
+}
+
+/**
+ * Get user tags from Firestore
+ * Returns array of tag strings for the user
+ */
+export async function getUserTags(userId: string): Promise<string[]> {
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, returning empty tags')
+    return []
+  }
+
+  try {
+    const userTagsRef = doc(db, 'userTags', userId)
+    const userTagsSnap = await getDoc(userTagsRef)
+    
+    if (userTagsSnap.exists()) {
+      const data = userTagsSnap.data()
+      return data.tags || []
+    }
+    return []
+  } catch (error) {
+    console.error('Error fetching user tags:', error)
+    return []
   }
 }
 

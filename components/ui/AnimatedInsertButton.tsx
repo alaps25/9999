@@ -2,7 +2,9 @@
 
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ArrowUp, ArrowDown } from 'lucide-react'
 import { Dropdown } from './Dropdown'
+import { Button } from './Button'
 import type { DropdownOption } from './Dropdown'
 import styles from './AnimatedInsertButton.module.scss'
 
@@ -11,6 +13,8 @@ export interface AnimatedInsertButtonProps {
   options: DropdownOption[]
   placeholder?: string
   onInsert?: (cardType?: string) => void // Accept optional cardType parameter
+  onDelete?: () => void // Optional delete callback
+  position?: 'top' | 'bottom' // Position to determine arrow direction
   onMouseEnter?: () => void
   onMouseLeave?: () => void
 }
@@ -24,6 +28,8 @@ export const AnimatedInsertButton: React.FC<AnimatedInsertButtonProps> = ({
   options,
   placeholder = 'Add',
   onInsert,
+  onDelete,
+  position = 'top',
   onMouseEnter,
   onMouseLeave,
 }) => {
@@ -49,28 +55,40 @@ export const AnimatedInsertButton: React.FC<AnimatedInsertButtonProps> = ({
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2, ease: 'easeOut' }}
+          transition={{ 
+            duration: 0.25, 
+            ease: [0.16, 1, 0.3, 1], // Smooth cubic-bezier easing
+            opacity: { duration: 0.2 } // Slightly faster opacity for smoother feel
+          }}
           className={styles.container}
           style={{ overflow: 'visible' }}
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
         >
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ delay: 0.1, duration: 0.2 }}
-            className={styles.button}
-            style={{ transform: 'none' }}
-          >
-            <Dropdown
-              options={wrappedOptions}
-              placeholder={placeholder}
+          <Dropdown
+            options={wrappedOptions}
+            placeholder={placeholder}
+            variant="low"
+            size="md"
+            alwaysShowPlaceholder={true}
+          />
+          {onDelete && (
+            <Button
               variant="low"
               size="md"
-              alwaysShowPlaceholder={true}
-            />
-          </motion.div>
+              onClick={(e) => {
+                e.stopPropagation()
+                onDelete()
+              }}
+            >
+              DELETE THIS CARD
+              {position === 'top' ? (
+                <ArrowDown size={16} />
+              ) : (
+                <ArrowUp size={16} />
+              )}
+            </Button>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

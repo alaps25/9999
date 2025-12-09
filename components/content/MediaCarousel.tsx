@@ -27,6 +27,7 @@ export interface MediaCarouselProps {
   onSlideImageDelete?: (slideId: string) => void // Added for slide image deletion
   onSlideDelete?: (slideId: string) => void // Added for deleting entire slide
   singleFileOnly?: boolean // If true, only allow single file selection (for slides)
+  uploadingStates?: Record<number | string, boolean> // Loading states for images/slides: { [index]: boolean } or { [`slide-${slideId}`]: boolean }
 }
 
 /**
@@ -52,6 +53,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   onSlideDelete,
   singleFileOnly = false,
   onNavigateToSlide,
+  uploadingStates = {},
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -158,8 +160,11 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   if (variant === 'single') {
     
     // Handle both single string and array of strings
-    const mediaArray = Array.isArray(singleImage) ? singleImage : (singleImage ? [singleImage] : [])
-    const hasMedia = mediaArray.length > 0
+    // Filter out empty strings and invalid URLs
+    const mediaArray = Array.isArray(singleImage) 
+      ? singleImage.filter(url => url && url.trim() !== '') 
+      : (singleImage && singleImage.trim() !== '' ? [singleImage] : [])
+    const hasMedia = mediaArray.length > 0 && mediaArray.some(url => url && url.trim() !== '')
     const isMultiple = mediaArray.length > 1
     const currentMedia = mediaArray[mediaIndex] || ''
 
@@ -238,12 +243,20 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
           
           {hasMedia ? (
             <>
-              <MediaAsset
-                src={currentMedia}
-                alt={`Project media ${mediaIndex + 1}`}
-                priority={mediaIndex === 0}
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-              />
+              <div className={styles.mediaWrapper}>
+                <MediaAsset
+                  src={currentMedia}
+                  alt={`Project media ${mediaIndex + 1}`}
+                  priority={mediaIndex === 0}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+                />
+                {uploadingStates[mediaIndex] && (
+                  <div className={styles.uploadingOverlay}>
+                    <div className={styles.uploadingSpinner}></div>
+                    <div className={styles.uploadingText}>Uploading...</div>
+                  </div>
+                )}
+              </div>
               
               {/* Bottom right button row: arrows (if multiple) + add + delete - show on hover */}
               {isHovered && (
@@ -446,6 +459,9 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
               singleFileOnly={true}
               onMediaChange={(files) => onSlideImageChange?.(currentSlide.id, files)}
               onMediaDelete={() => onSlideImageDelete?.(currentSlide.id)}
+              uploadingStates={{
+                0: uploadingStates[`slide-${currentSlide.id}`] || false,
+              }}
             />
           </div>
         </div>
