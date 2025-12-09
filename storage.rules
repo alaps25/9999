@@ -1,0 +1,17 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Users can only access their own files
+    // Path: users/{userId}/...
+    match /users/{userId}/{allPaths=**} {
+      allow read: if true; // Public read for portfolio images
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+  }
+}
+

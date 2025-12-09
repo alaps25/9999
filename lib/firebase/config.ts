@@ -1,6 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app'
 import { getFirestore, Firestore } from 'firebase/firestore'
 import { getStorage, FirebaseStorage } from 'firebase/storage'
+import { getAuth, Auth } from 'firebase/auth'
 
 interface FirebaseConfig {
   apiKey: string
@@ -36,9 +37,10 @@ if (isFirebaseConfigured) {
   }
 }
 
-// Initialize Firestore and Storage only if Firebase is configured
+// Initialize Firestore, Storage, and Auth only if Firebase is configured
 export const db: Firestore | null = app ? getFirestore(app) : null
 export const storage: FirebaseStorage | null = app ? getStorage(app) : null
+export const auth: Auth | null = app ? getAuth(app) : null
 
 export default app
 

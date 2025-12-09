@@ -10,11 +10,6 @@ export interface ContentHolderProps {
   title?: string
   description?: string
   images?: string[]
-  metadata?: {
-    company?: string
-    year?: string
-    type?: string
-  }
   content?: {
     showTitle?: boolean
     showDescription?: boolean
@@ -22,7 +17,7 @@ export interface ContentHolderProps {
     showSlides?: boolean
     showSingleImage?: boolean
     showTextOnly?: boolean
-    showMetadata?: boolean
+    showTags?: boolean
   }
   className?: string
 }
@@ -36,12 +31,11 @@ export const ContentHolder: React.FC<ContentHolderProps> = ({
   title,
   description,
   images,
-  metadata,
   content = {
     showTitle: true,
     showDescription: true,
     showPhotoCarousel: true,
-    showMetadata: true,
+    showTags: true,
   },
   className,
 }) => {
@@ -49,11 +43,8 @@ export const ContentHolder: React.FC<ContentHolderProps> = ({
   const displayTitle = project?.title || title
   const displayDescription = project?.description || description
   const displayImages = project?.images || images || []
-  const displayMetadata = metadata || {
-    company: project?.company,
-    year: project?.year,
-    type: project?.type,
-  }
+  // Tags are now used instead of metadata
+  const displayTags = project?.tags || []
 
   // Merge project content config with props
   const contentConfig = project?.content
@@ -62,24 +53,15 @@ export const ContentHolder: React.FC<ContentHolderProps> = ({
 
   return (
     <div className={cn(styles.contentHolder, className)}>
-      {/* Metadata */}
-      {contentConfig.showMetadata && displayMetadata && (
+      {/* Tags */}
+      {contentConfig.showTags && displayTags.length > 0 && (
         <div className={styles.metadata}>
-          {displayMetadata.company && (
-            <span className="uppercase">{displayMetadata.company}</span>
-          )}
-          {displayMetadata.year && (
-            <>
-              <span className={styles.separator}></span>
-              <span>{displayMetadata.year}</span>
-            </>
-          )}
-          {displayMetadata.type && (
-            <>
-              <span className={styles.separator}></span>
-              <span className="uppercase">{displayMetadata.type}</span>
-            </>
-          )}
+          {displayTags.map((tag, index) => (
+            <React.Fragment key={index}>
+              <span className="uppercase">{tag}</span>
+              {index < displayTags.length - 1 && <span className={styles.separator}></span>}
+            </React.Fragment>
+          ))}
         </div>
       )}
 

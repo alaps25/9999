@@ -13,7 +13,7 @@ export interface CardWithInsertButtonProps {
   className?: string
   isEditable?: boolean
   noPadding?: boolean
-  onFieldChange?: (field: keyof Project, value: string) => void
+  onFieldChange?: (field: keyof Project, value: string | string[]) => void
   onBioChange?: (value: string) => void
   onAddSlide?: () => void
   onSlideDescriptionChange?: (slideId: string, description: string) => void
@@ -24,8 +24,11 @@ export interface CardWithInsertButtonProps {
   onSlideDelete?: (slideId: string) => void
   onInsertAbove?: (cardType?: string) => void // Accept optional cardType parameter
   onInsertBelow?: (cardType?: string) => void // Accept optional cardType parameter
+  onDelete?: () => void // Callback for delete button
   insertOptions?: DropdownOption[]
   hasCardAbove?: boolean
+  hasCardBelow?: boolean
+  uploadingStates?: Record<number | string, boolean> // Loading states for images/slides
 }
 
 /**
@@ -50,8 +53,11 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
   onSlideDelete,
   onInsertAbove,
   onInsertBelow,
+  onDelete,
   insertOptions = [],
   hasCardAbove = false,
+  hasCardBelow = false,
+  uploadingStates,
 }) => {
   return (
     <WithInsertButton
@@ -60,7 +66,9 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
       placeholder="Add"
       onInsertAbove={onInsertAbove}
       onInsertBelow={onInsertBelow}
+      onDelete={onDelete}
       hasCardAbove={hasCardAbove}
+      hasCardBelow={hasCardBelow}
     >
       <ProjectCard
         project={project}
@@ -78,6 +86,7 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
         onSlideImageChange={onSlideImageChange}
         onSlideImageDelete={onSlideImageDelete}
         onSlideDelete={onSlideDelete}
+        uploadingStates={uploadingStates}
       />
     </WithInsertButton>
   )

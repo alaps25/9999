@@ -13,8 +13,10 @@ export interface WithInsertButtonProps {
   placeholder?: string
   onInsertAbove?: (cardType?: string) => void // Accept optional cardType parameter
   onInsertBelow?: (cardType?: string) => void // Accept optional cardType parameter
+  onDelete?: () => void // Callback for delete button
   className?: string
-  hasCardAbove?: boolean // If true, suppress top button (let card above show its bottom button)
+  hasCardAbove?: boolean // If true, there's a card above this one
+  hasCardBelow?: boolean // If true, suppress bottom button for middle cards (show top instead)
 }
 
 /**
@@ -33,8 +35,10 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
   placeholder = 'Add',
   onInsertAbove,
   onInsertBelow,
+  onDelete,
   className,
   hasCardAbove = false,
+  hasCardBelow = false,
 }) => {
   const {
     hoverPosition,
@@ -49,22 +53,23 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
     hideDelay: 400, // Reduced from 2000ms to 400ms for faster hide
   })
 
-  // Only show top button if there's no card above (to avoid duplicates between cards)
-  // When there's a card above, let that card show its bottom button instead
+  // Show buttons based on hover position
+  // - Top button: Only shows for first card (hasCardAbove === false)
+  // - Bottom button: Shows for all cards when hovering bottom edge
+  // - Button container stays visible while hovering on the same edge that triggered it
   const showTopButton = hoverPosition === 'top' && !hasCardAbove
-  // Bottom button always shows when hovering on bottom edge
-  // If there's a card below, it will suppress its top button to avoid duplicates
   const showBottomButton = hoverPosition === 'bottom'
 
   return (
     <>
       {/* Top insert button - appears above child, pushes child down */}
-      {/* Only show if no card above (let card above show its bottom button instead) */}
       <AnimatedInsertButton
         show={showTopButton}
         options={insertOptions}
         placeholder={placeholder}
         onInsert={onInsertAbove}
+        onDelete={onDelete}
+        position="top"
         onMouseEnter={() => handleButtonMouseEnter('top')}
         onMouseLeave={handleButtonMouseLeave}
       />
@@ -80,12 +85,13 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
       </div>
 
       {/* Bottom insert button - appears below child, pushes next element down */}
-      {/* Only show if no card below (let card below show its top button instead) */}
       <AnimatedInsertButton
         show={showBottomButton}
         options={insertOptions}
         placeholder={placeholder}
         onInsert={onInsertBelow}
+        onDelete={onDelete}
+        position="bottom"
         onMouseEnter={() => handleButtonMouseEnter('bottom')}
         onMouseLeave={handleButtonMouseLeave}
       />

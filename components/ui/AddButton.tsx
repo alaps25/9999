@@ -27,8 +27,8 @@ export const AddButton: React.FC<AddButtonProps> = ({
   iconOnly = true,
   stacked = false,
 }) => {
-  // Icon size based on button size
-  const iconSize = size === 'sm' ? 14 : size === 'lg' ? 18 : 16
+  // Icon size - consistent 16px for all button sizes
+  const iconSize = 16
 
   return (
     <Button

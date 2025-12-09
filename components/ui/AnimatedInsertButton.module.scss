@@ -3,16 +3,13 @@
 
 .container {
   width: 100%;
-  overflow: visible; // Allow dropdown menu to overflow container
+  //overflow: visible; // Allow dropdown menu to overflow container
   position: relative; // Create stacking context for z-index
   outline: 1px solid $accent-primary;
-  margin-top: 1px;
-  margin-bottom: 1px;
-}
-
-.button {
+  margin-top: 1px; // Prevents outline overlap creating double-thick borders with card above
+  margin-bottom: 1px; // Prevents outline overlap creating double-thick borders with card below
   display: flex;
-  justify-content: flex-start;
-  position: relative; // Create stacking context for dropdown
+  justify-content: space-between;
+  align-items: center; // Ensures both buttons align to center and have same height
 }
 
