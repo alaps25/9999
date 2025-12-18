@@ -80,9 +80,15 @@ function PageContent({ slug }: { slug: string }) {
     },
   ]
 
+  // Secondary menu items (SHARE and SETTINGS)
+  const secondaryMenuItems = [
+    { id: 'share', label: 'SHARE', href: '/share' },
+    { id: 'settings', label: 'SETTINGS', href: '/settings' },
+  ]
+
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={portfolioData.menuItems} />
+      <Sidebar menuItems={portfolioData.menuItems} secondaryMenuItems={secondaryMenuItems} />
       <MainContent>
         {/* Projects Section */}
         <div className={styles.projectsSection}>
