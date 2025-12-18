@@ -10,6 +10,7 @@ import styles from './Sidebar.module.scss'
 
 export interface SidebarProps {
   menuItems: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean })[]
+  secondaryMenuItems?: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean })[]
   className?: string
   onAddItem?: () => void
 }
@@ -17,8 +18,9 @@ export interface SidebarProps {
 /**
  * Sidebar component - Left navigation menu
  * Displays menu items with active state highlighting using Button components
+ * Supports primary menu items and secondary menu items with a gap between them
  */
-export const Sidebar: React.FC<SidebarProps> = ({ menuItems, className, onAddItem }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ menuItems, secondaryMenuItems, className, onAddItem }) => {
   const pathname = usePathname()
 
   return (
@@ -31,7 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, className, onAddIte
           return (
             <Button
               key={item.id}
-                      variant={isActive ? 'high' : 'low'}
+              variant={isActive ? 'high' : 'low'}
               href={item.href || '#'}
               asLink
               stacked
@@ -49,6 +51,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, className, onAddIte
             stacked
             className={styles.addMenuItemButton}
           />
+        )}
+        {secondaryMenuItems && secondaryMenuItems.length > 0 && (
+          <>
+            <div className={styles.menuGap} />
+            {secondaryMenuItems.map((item) => {
+              const isActive = item.isActive || pathname === item.href
+              
+              return (
+                <Button
+                  key={item.id}
+                  variant={isActive ? 'high' : 'low'}
+                  href={item.href || '#'}
+                  asLink
+                  stacked
+                  className={styles.menuButton}
+                >
+                  {typeof item.label === 'string' ? item.label : item.label}
+                </Button>
+              )
+            })}
+          </>
         )}
       </nav>
     </aside>

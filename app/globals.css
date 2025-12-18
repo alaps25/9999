@@ -5,6 +5,7 @@
 @layer base {
   :root {
     --font-inter: 'Inter', system-ui, sans-serif;
+    --accent-primary: #000000;
   }
 
   * {

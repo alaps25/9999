@@ -198,3 +198,30 @@ export async function saveUserTags(userId: string, tags: string[]): Promise<void
   }
 }
 
+/**
+ * Save user settings (accent color, rounded corners, theme, visibility) to Firestore
+ * Stores settings in the user's document
+ */
+export async function saveUserSettings(
+  userId: string,
+  settings: {
+    accentColor?: string
+    roundedCorners?: string
+    theme?: string
+    visibility?: string
+  }
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, skipping settings save')
+    return
+  }
+
+  try {
+    const userRef = doc(db!, 'users', userId)
+    await setDoc(userRef, { settings }, { merge: true })
+  } catch (error) {
+    console.error('Error saving user settings:', error)
+    throw error
+  }
+}
+

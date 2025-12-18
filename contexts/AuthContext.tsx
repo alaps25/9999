@@ -14,6 +14,7 @@ import {
 import { auth } from '@/lib/firebase/config'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
+import { getUserSettings } from '@/lib/firebase/queries'
 
 interface UserData {
   uid: string
@@ -83,6 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null)
         setUserData(null)
+        // Reset accent color to default when user signs out
+        document.documentElement.style.setProperty('--accent-primary', '#000000')
       }
       setLoading(false)
     })
@@ -128,6 +131,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
 
         setUserData(newUserData)
+      }
+
+      // Load and apply user settings (accent color, etc.)
+      const settings = await getUserSettings(firebaseUser.uid)
+      if (settings?.accentColor) {
+        document.documentElement.style.setProperty('--accent-primary', settings.accentColor)
       }
     } catch (error) {
       console.error('Error fetching/creating user data:', error)

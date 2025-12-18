@@ -285,3 +285,33 @@ export async function getUserTags(userId: string): Promise<string[]> {
   }
 }
 
+/**
+ * Get user settings from Firestore
+ * Returns user settings (accent color, rounded corners, theme, visibility)
+ */
+export async function getUserSettings(userId: string): Promise<{
+  accentColor?: string
+  roundedCorners?: string
+  theme?: string
+  visibility?: string
+} | null> {
+  if (!isFirebaseConfigured() || !db) {
+    console.log('Firebase not configured, returning null settings')
+    return null
+  }
+
+  try {
+    const userRef = doc(db, 'users', userId)
+    const userSnap = await getDoc(userRef)
+    
+    if (userSnap.exists()) {
+      const data = userSnap.data()
+      return data.settings || null
+    }
+    return null
+  } catch (error) {
+    console.error('Error fetching user settings:', error)
+    return null
+  }
+}
+
