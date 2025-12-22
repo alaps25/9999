@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -10,15 +11,29 @@ import { Input } from '@/components/ui/Input'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Typography } from '@/components/ui/Typography'
 import { Palette, Square, Sun, EyeOff, ArrowRight, Trash2 } from 'lucide-react'
-import { getPortfolioData, getUserSettings } from '@/lib/firebase/queries'
+import { getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { saveUserSettings } from '@/lib/firebase/mutations'
+import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import styles from './page.module.scss'
-import type { PortfolioData } from '@/lib/firebase/types'
+import type { MenuItem } from '@/lib/firebase/types'
 
 function SettingsContent() {
-  const { user, userData } = useAuth()
-  const [portfolioData, setPortfolioData] = React.useState<PortfolioData | null>(null)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const { user, userData, signOut, deleteAccount } = useAuth()
+  const [menuItems, setMenuItems] = React.useState<MenuItem[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [isDeleting, setIsDeleting] = React.useState(false)
+  const [reauthMessage, setReauthMessage] = React.useState<string | null>(null)
+
+  // Check if we're handling email link re-authentication
+  React.useEffect(() => {
+    if (searchParams.get('reauth') === 'true') {
+      setReauthMessage('Re-authentication successful. You can now delete your account.')
+      // Remove the query parameter from URL
+      router.replace('/settings')
+    }
+  }, [searchParams, router])
 
   React.useEffect(() => {
     async function loadData() {
@@ -27,11 +42,11 @@ function SettingsContent() {
         return
       }
       try {
-        const [data, settings] = await Promise.all([
-          getPortfolioData(userData.username, user.uid),
+        const [items, settings] = await Promise.all([
+          getMenuItems(user.uid), // Only get menu items for this user
           getUserSettings(user.uid)
         ])
-        setPortfolioData(data)
+        setMenuItems(items)
         
         // Load settings from user profile
         if (settings) {
@@ -108,19 +123,91 @@ function SettingsContent() {
     { label: 'PUBLIC', value: 'PUBLIC' },
   ]
 
-  if (loading || !portfolioData) {
+  const handleShareClick = async () => {
+    if (!userData?.username) return
+    const portfolioUrl = getPortfolioUrl(userData.username)
+    await shareUrl(portfolioUrl, `Check out ${userData.username}'s portfolio`)
+  }
+
+  const handleLogOut = async () => {
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Error signing out:', error)
+      alert('Failed to sign out. Please try again.')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    // Double confirmation
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account? This will permanently delete:\n\n' +
+      '• All your pages\n' +
+      '• All your projects\n' +
+      '• All your images\n' +
+      '• Your account settings\n\n' +
+      'This action cannot be undone. Type DELETE to confirm.'
+    )
+
+    if (!confirmed) return
+
+    const finalConfirmation = window.prompt(
+      'This will permanently delete your account and all data. Type "DELETE" to confirm:'
+    )
+
+    if (finalConfirmation !== 'DELETE') {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      await deleteAccount()
+      // Redirect to home page after account deletion
+      router.push('/')
+    } catch (error: any) {
+      console.error('Error deleting account:', error)
+      
+      if (error.message === 'REAUTH_REQUIRED_EMAIL') {
+        // User needs to check their email for re-authentication link
+        setReauthMessage(
+          'A re-authentication email has been sent to your email address. ' +
+          'Please click the link in the email to confirm your identity, then try deleting your account again.'
+        )
+        setIsDeleting(false)
+      } else if (error.code === 'auth/requires-recent-login') {
+        // For Google users, show a message that they need to sign in again
+        alert(
+          'For security, you need to sign in again before deleting your account. ' +
+          'Please sign out and sign back in, then try again.'
+        )
+        setIsDeleting(false)
+      } else {
+        alert(`Failed to delete account: ${error.message || 'Please try again.'}`)
+        setIsDeleting(false)
+      }
+    }
+  }
+
+  if (loading) {
     return <div>Loading...</div>
   }
 
+  // Generate hrefs for menu items using username
+  const menuItemsWithHrefs = menuItems.map(item => ({
+    ...item,
+    href: userData?.username ? `/${userData.username}/${item.slug || 'page'}` : '#',
+  }))
+
   // Secondary menu items (SHARE and SETTINGS)
   const secondaryMenuItems = [
-    { id: 'share', label: 'SHARE', href: '/share' },
+    { id: 'share', label: 'SHARE', onClick: handleShareClick },
     { id: 'settings', label: 'SETTINGS', href: '/settings', isActive: true },
   ]
 
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={portfolioData.menuItems} secondaryMenuItems={secondaryMenuItems} />
+      <Sidebar menuItems={menuItemsWithHrefs} secondaryMenuItems={secondaryMenuItems} />
       <MainContent>
         <div className={styles.settingsContainer}>
           {/* Settings Section */}
@@ -204,12 +291,35 @@ function SettingsContent() {
             <Typography variant="h2" className={styles.accountEmail}>
               {user?.email || 'user@email.com'}
             </Typography>
-            <Button variant="medium" size="md" style={{ alignSelf: 'flex-start' }}>
+            {reauthMessage && (
+              <div style={{ 
+                padding: '1rem', 
+                backgroundColor: '#fff3cd', 
+                border: '1px solid #ffc107',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+                color: '#856404'
+              }}>
+                {reauthMessage}
+              </div>
+            )}
+            <Button 
+              variant="medium" 
+              size="md" 
+              style={{ alignSelf: 'flex-start' }}
+              onClick={handleLogOut}
+            >
               LOG OUT
               <ArrowRight size={16} />
             </Button>
-            <Button variant="medium" size="md" style={{ alignSelf: 'flex-start' }}>
-              DELETE ACCOUNT
+            <Button 
+              variant="medium" 
+              size="md" 
+              style={{ alignSelf: 'flex-start' }}
+              onClick={handleDeleteAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'DELETING...' : 'DELETE ACCOUNT'}
               <Trash2 size={16} />
             </Button>
           </div>

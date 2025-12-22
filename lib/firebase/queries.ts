@@ -39,28 +39,74 @@ export async function getMenuItems(userId?: string): Promise<MenuItem[]> {
     
     const querySnapshot = await getDocs(q)
     
-    const items = querySnapshot.docs.map((doc) => ({
+    let items = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
     })) as MenuItem[]
     
-    // Ensure at least one menu item exists for the user
-    if (items.length === 0 && userId) {
-      // Create default menu item with slug-based URL
-      const { addDoc, updateDoc, doc: docFn } = await import('firebase/firestore')
-      const defaultSlug = 'page' // Default slug for first page
-      const defaultItem = {
-        label: 'PAGE',
-        slug: defaultSlug,
-        order: 0,
-        userId: userId, // Associate with the current user
+    // Deduplicate: If multiple items have the same slug, keep only the first one (by order)
+    // This prevents showing duplicate menu items and removes them from the database
+    if (items.length > 1 && userId) {
+      const seenSlugs = new Map<string, MenuItem>()
+      const duplicatesToRemove: string[] = []
+      
+      // Sort by order to keep the first one
+      const sortedItems = [...items].sort((a, b) => (a.order || 0) - (b.order || 0))
+      
+      for (const item of sortedItems) {
+        const slug = item.slug || 'page'
+        if (seenSlugs.has(slug)) {
+          // Duplicate found, mark for removal
+          duplicatesToRemove.push(item.id)
+        } else {
+          seenSlugs.set(slug, item)
+        }
       }
-      const docRef = await addDoc(menuRef, defaultItem)
-      return [{
-        id: docRef.id,
-        ...defaultItem,
-        href: `/${defaultSlug}`, // Keep href for backward compatibility
-      }]
+      
+      // Remove duplicates from database
+      if (duplicatesToRemove.length > 0) {
+        console.warn(`Found ${duplicatesToRemove.length} duplicate menu items with same slugs. Removing them from database.`)
+        const { deleteDoc, doc: docFn } = await import('firebase/firestore')
+        const dbInstance = db!
+        await Promise.all(
+          duplicatesToRemove.map(itemId => deleteDoc(docFn(dbInstance, 'menu', itemId)))
+        )
+        // Filter them out from the returned array
+        items = items.filter(item => !duplicatesToRemove.includes(item.id))
+      }
+    }
+    
+    // Ensure at least one menu item exists for the user
+    // Check again after getting items to prevent race conditions
+    if (items.length === 0 && userId) {
+      // Double-check: query again to make sure no item was created by another call
+      const doubleCheckQuery = query(menuRef, where('userId', '==', userId))
+      const doubleCheckSnapshot = await getDocs(doubleCheckQuery)
+      
+      if (doubleCheckSnapshot.empty) {
+        // Create default menu item with slug-based URL
+        const { addDoc } = await import('firebase/firestore')
+        const defaultSlug = 'page' // Default slug for first page
+        const defaultItem = {
+          label: 'PAGE',
+          slug: defaultSlug,
+          order: 0,
+          userId: userId, // Associate with the current user
+        }
+        const docRef = await addDoc(menuRef, defaultItem)
+        return [{
+          id: docRef.id,
+          ...defaultItem,
+          href: `/${defaultSlug}`, // Keep href for backward compatibility
+        }]
+      } else {
+        // Another call created the item, return it
+        const createdItems = doubleCheckSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as MenuItem[]
+        return createdItems.sort((a, b) => (a.order || 0) - (b.order || 0))
+      }
     }
     
     // Ensure all items have slugs - generate from label if missing
@@ -69,17 +115,20 @@ export async function getMenuItems(userId?: string): Promise<MenuItem[]> {
     }
     
     const { updateDoc, doc: docFn } = await import('firebase/firestore')
+    // Build existing slugs list BEFORE processing to avoid duplicates
     const existingSlugs = items.map(item => item.slug).filter(Boolean) as string[]
     const dbInstance = db // Store in local variable for TypeScript
+    const slugsToAdd: string[] = [] // Track slugs we're adding in this batch
+    
     const updatedItems = await Promise.all(
       items.map(async (item, index) => {
         if (!item.slug) {
-          // Generate slug from label
+          // Generate slug from label, ensuring uniqueness
           const slug = index === 0 && item.label.toUpperCase() === 'PAGE' 
             ? 'page' // First item with "PAGE" label gets "page" slug
-            : generateUniqueSlug(item.label, existingSlugs)
+            : generateUniqueSlug(item.label, [...existingSlugs, ...slugsToAdd])
           
-          existingSlugs.push(slug)
+          slugsToAdd.push(slug)
           
           // Update in database
           await updateDoc(docFn(dbInstance, 'menu', item.id), {
@@ -88,7 +137,7 @@ export async function getMenuItems(userId?: string): Promise<MenuItem[]> {
           })
           return { ...item, slug, href: `/${slug}` }
         }
-        // Update href to match slug if it doesn't match
+        // Update href to match slug if it doesn't match (deprecated, but keep for backward compat)
         if (!item.href || item.href !== `/${item.slug}`) {
           await updateDoc(docFn(dbInstance, 'menu', item.id), {
             href: `/${item.slug}`,
@@ -98,8 +147,6 @@ export async function getMenuItems(userId?: string): Promise<MenuItem[]> {
         return item
       })
     )
-    
-    return updatedItems
     
     return updatedItems
   } catch (error) {
@@ -201,8 +248,103 @@ export async function getBio(userId?: string): Promise<{ text: string } | null> 
 }
 
 /**
+ * Get page ID (menu item ID) by slug for a specific user
+ * Returns the pageId if found, null otherwise
+ */
+export async function getPageIdBySlug(slug: string, userId: string): Promise<string | null> {
+  if (!isFirebaseConfigured() || !db) {
+    return null
+  }
+
+  try {
+    const menuItems = await getMenuItems(userId)
+    const pageMenuItem = menuItems.find(item => item.slug === slug)
+    return pageMenuItem?.id || null
+  } catch (error) {
+    console.error('Error fetching page ID by slug:', error)
+    return null
+  }
+}
+
+/**
+ * Fetch projects for a specific page (filtered by pageId)
+ * More efficient than loading all projects and filtering
+ */
+export async function getProjectsByPageId(pageId: string, userId: string): Promise<Project[]> {
+  if (!isFirebaseConfigured() || !db) {
+    return []
+  }
+
+  try {
+    const projectsRef = collection(db, 'projects')
+    const q = query(
+      projectsRef,
+      where('userId', '==', userId),
+      where('pageId', '==', pageId),
+      orderBy('order', 'asc')
+    )
+    
+    const querySnapshot = await getDocs(q)
+    
+    const projects = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Project[]
+    
+    return projects
+  } catch (error) {
+    console.error('Error fetching projects by pageId:', error)
+    return []
+  }
+}
+
+/**
+ * Fetch portfolio data (menu items, sections, and bio) for a specific page
+ * Uses pageId as the source of truth for better performance and reliability
+ */
+export async function getPortfolioDataByPageId(pageId: string, userId: string): Promise<PortfolioData> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, returning empty portfolio data')
+    return {
+      menuItems: [],
+      sections: [],
+      bio: undefined,
+    }
+  }
+
+  try {
+    // Load menu items, projects for this page, and bio in parallel
+    const [menuItems, projects, bio] = await Promise.all([
+      getMenuItems(userId),
+      getProjectsByPageId(pageId, userId),
+      getBio(userId),
+    ])
+
+    const sections = projects.map((project) => ({
+      id: project.id,
+      type: 'project' as const,
+      project,
+    }))
+
+    return {
+      menuItems,
+      sections,
+      bio: bio || undefined,
+    }
+  } catch (error) {
+    console.error('Error fetching portfolio data by pageId:', error)
+    return {
+      menuItems: [],
+      sections: [],
+      bio: undefined,
+    }
+  }
+}
+
+/**
  * Fetch portfolio data (menu items, sections, and bio) for a specific user
- * Optionally filter by page slug
+ * Optionally filter by page slug (legacy function for backward compatibility)
+ * @deprecated Use getPortfolioDataByPageId instead for better performance
  */
 export async function getPortfolioData(pageSlug?: string, userId?: string): Promise<PortfolioData> {
   if (!isFirebaseConfigured()) {
@@ -214,41 +356,41 @@ export async function getPortfolioData(pageSlug?: string, userId?: string): Prom
     }
   }
 
-  try {
-    const [menuItems, allProjects, bio] = await Promise.all([
-      getMenuItems(userId),
-      getProjects(userId),
-      getBio(userId),
-    ])
+  if (!userId) {
+    return {
+      menuItems: [],
+      sections: [],
+      bio: undefined,
+    }
+  }
 
-    // Filter projects by page - pageSlug is the menu item slug (e.g., "page")
-    // Find the menu item by slug to get its ID
-    let pageId: string | undefined
-    
+  try {
+    // If slug provided, get pageId first, then load data
     if (pageSlug) {
-      // Find menu item by slug
-      const pageMenuItem = menuItems.find(item => item.slug === pageSlug)
-      pageId = pageMenuItem?.id
-    } else if (menuItems.length > 0) {
-      // Fallback: use first menu item if no slug provided
-      pageId = menuItems[0].id
+      const pageId = await getPageIdBySlug(pageSlug, userId)
+      if (pageId) {
+        return getPortfolioDataByPageId(pageId, userId)
+      }
+      // If page not found, return empty data
+      const menuItems = await getMenuItems(userId)
+      return {
+        menuItems,
+        sections: [],
+        bio: undefined,
+      }
     }
 
-    // Filter projects by pageId - always require pageId
-    const projects = pageId 
-      ? allProjects.filter(p => p.pageId === pageId)
-      : [] // If no pageId found, return empty array
-
-    const sections = projects.map((project) => ({
-      id: project.id,
-      type: 'project' as const,
-      project,
-    }))
+    // If no slug provided, use first page
+    const menuItems = await getMenuItems(userId)
+    if (menuItems.length > 0) {
+      const firstPageId = menuItems[0].id
+      return getPortfolioDataByPageId(firstPageId, userId)
+    }
 
     return {
-      menuItems,
-      sections,
-      bio: bio || undefined, // Convert null to undefined
+      menuItems: [],
+      sections: [],
+      bio: undefined,
     }
   } catch (error) {
     console.error('Error fetching portfolio data:', error)
