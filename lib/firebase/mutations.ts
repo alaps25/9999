@@ -280,7 +280,7 @@ export async function deletePage(pageId: string, userId: string): Promise<void> 
           try {
             const urlObj = new URL(url)
             const pathMatch = urlObj.pathname.match(/\/o\/(.+)\?/)
-            if (pathMatch) {
+            if (pathMatch && storage) {
               const filePath = decodeURIComponent(pathMatch[1])
               const storageRef = ref(storage, filePath)
               await deleteObject(storageRef)
@@ -356,7 +356,7 @@ export async function deleteAllUserData(userId: string): Promise<void> {
           try {
             const urlObj = new URL(url)
             const pathMatch = urlObj.pathname.match(/\/o\/(.+)\?/)
-            if (pathMatch) {
+            if (pathMatch && storage) {
               const filePath = decodeURIComponent(pathMatch[1])
               const storageRef = ref(storage, filePath)
               await deleteObject(storageRef)

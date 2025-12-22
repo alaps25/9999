@@ -30,7 +30,7 @@ export async function removeDuplicateMenuItems(userId: string): Promise<{
     const items = querySnapshot.docs.map((doc) => ({
       id: doc.id,
       ...doc.data(),
-    }))
+    })) as Array<{ id: string; slug?: string; order?: number; [key: string]: any }>
 
     // Group items by slug
     const itemsBySlug = new Map<string, typeof items>()

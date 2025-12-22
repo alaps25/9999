@@ -11,7 +11,6 @@ import {
   signOut as firebaseSignOut,
   deleteUser,
   reauthenticateWithPopup,
-  reauthenticateWithEmailLink,
   onAuthStateChanged,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase/config'

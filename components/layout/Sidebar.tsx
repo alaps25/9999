@@ -61,7 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, secondaryMenuItems,
               const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
               
               // If onClick is provided, use button instead of link
-              if (item.onClick) {
+              // Type guard: check if item has onClick property
+              if ('onClick' in item && item.onClick) {
                 return (
                   <Button
                     key={item.id}
