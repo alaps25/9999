@@ -82,8 +82,8 @@ export default function Home() {
         <div className={styles.loginCard}>
           {/* First Group: "Start by logging in" + Google Button */}
           <div className={styles.loginGroup}>
-            <Typography variant="h3" className="font-bold">
-              Start by logging in
+            <Typography variant="h3">
+              Single with single click
             </Typography>
 
             <Button
@@ -97,8 +97,8 @@ export default function Home() {
 
           {/* Second Group: "Or" + Email Form */}
           <div className={styles.loginGroup}>
-            <Typography variant="h3" className="font-bold">
-              Or
+            <Typography variant="h3" >
+              Login with email
             </Typography>
 
             {/* Email Form */}
@@ -119,7 +119,7 @@ export default function Home() {
                 size="md"
                 disabled={isSendingLink || linkSent}
               >
-                {isSendingLink ? 'SENDING...' : 'SEND LOGIN LINK'}
+                {isSendingLink ? 'SENDING...' : 'SEND LINK'}
               </Button>
 
               {/* Success Message */}
