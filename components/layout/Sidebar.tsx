@@ -9,8 +9,8 @@ import type { MenuItem } from '@/lib/firebase/types'
 import styles from './Sidebar.module.scss'
 
 export interface SidebarProps {
-  menuItems: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean })[]
-  secondaryMenuItems?: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean })[]
+  menuItems: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean; onClick?: () => void })[]
+  secondaryMenuItems?: (MenuItem | { id: string; label: React.ReactNode; href?: string; isActive?: boolean; onClick?: () => void })[]
   className?: string
   onAddItem?: () => void
 }
@@ -28,7 +28,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, secondaryMenuItems,
       {/* Menu Items */}
       <nav className={styles.nav}>
         {menuItems.map((item) => {
-          const isActive = item.isActive || pathname === item.href
+          // Prioritize explicit isActive flag, only use pathname as fallback if not set
+          const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
           
           return (
             <Button
@@ -56,7 +57,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ menuItems, secondaryMenuItems,
           <>
             <div className={styles.menuGap} />
             {secondaryMenuItems.map((item) => {
-              const isActive = item.isActive || pathname === item.href
+              // Prioritize explicit isActive flag, only use pathname as fallback if not set
+              const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
+              
+              // If onClick is provided, use button instead of link
+              // Type guard: check if item has onClick property
+              if ('onClick' in item && item.onClick) {
+                return (
+                  <Button
+                    key={item.id}
+                    variant={isActive ? 'high' : 'low'}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      item.onClick?.()
+                    }}
+                    stacked
+                    className={styles.menuButton}
+                  >
+                    {typeof item.label === 'string' ? item.label : item.label}
+                  </Button>
+                )
+              }
               
               return (
                 <Button

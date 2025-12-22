@@ -9,12 +9,15 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink,
   signOut as firebaseSignOut,
+  deleteUser,
+  reauthenticateWithPopup,
   onAuthStateChanged,
 } from 'firebase/auth'
 import { auth } from '@/lib/firebase/config'
 import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import { getUserSettings } from '@/lib/firebase/queries'
+import { deleteAllUserData } from '@/lib/firebase/mutations'
 
 interface UserData {
   uid: string
@@ -31,6 +34,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>
   sendMagicLink: (email: string) => Promise<void>
   signOut: () => Promise<void>
+  deleteAccount: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -50,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Check if we're handling an email link sign-in
+  // Check if we're handling an email link sign-in or re-authentication
   useEffect(() => {
     if (!auth) return
 
@@ -62,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .then(async (result) => {
             window.localStorage.removeItem('emailForSignIn')
             await fetchOrCreateUserData(result.user)
+            // If this was a re-auth link, the user is now re-authenticated
+            // The settings page will detect the ?reauth=true parameter
           })
           .catch((error) => {
             console.error('Error signing in with email link:', error)
@@ -193,6 +199,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserData(null)
   }
 
+  /**
+   * Re-authenticate user before sensitive operations
+   */
+  async function reauthenticateUser(): Promise<void> {
+    if (!auth || !user) {
+      throw new Error('User not authenticated')
+    }
+
+    // Check the provider
+    const providerId = user.providerData[0]?.providerId
+
+    if (providerId === 'google.com') {
+      // Re-authenticate with Google
+      const provider = new GoogleAuthProvider()
+      await reauthenticateWithPopup(user, provider)
+    } else if (providerId === 'password' || providerId === 'email') {
+      // For email/password or email link authentication
+      // We need to send a new email link for re-authentication
+      if (!user.email) {
+        throw new Error('User email not available')
+      }
+      
+      // Send re-authentication email link
+      const actionCodeSettings = {
+        url: `${window.location.origin}/settings?reauth=true`,
+        handleCodeInApp: true,
+      }
+      
+      await sendSignInLinkToEmail(auth, user.email, actionCodeSettings)
+      
+      // Wait for user to click the link
+      throw new Error('REAUTH_REQUIRED_EMAIL')
+    } else {
+      throw new Error(`Unsupported provider: ${providerId}`)
+    }
+  }
+
+  /**
+   * Delete account - deletes all user data and the Firebase Auth account
+   */
+  async function deleteAccount() {
+    if (!auth || !user) {
+      throw new Error('User not authenticated')
+    }
+
+    try {
+      // 1. Delete all user data from Firestore and Storage first
+      // (This doesn't require recent authentication)
+      await deleteAllUserData(user.uid)
+
+      // 2. Try to delete the Firebase Auth account
+      // This requires recent authentication, so we'll handle that error
+      try {
+        await deleteUser(user)
+      } catch (deleteError: any) {
+        // If delete fails due to requires-recent-login, re-authenticate and try again
+        if (deleteError.code === 'auth/requires-recent-login') {
+          try {
+            await reauthenticateUser()
+            // After re-authentication, try deleting again
+            await deleteUser(user)
+          } catch (reauthError: any) {
+            // If re-auth fails with email requirement, throw special error for UI
+            if (reauthError.message === 'REAUTH_REQUIRED_EMAIL') {
+              throw reauthError
+            }
+            // Otherwise, throw the re-auth error
+            throw reauthError
+          }
+        } else {
+          // Some other error occurred
+          throw deleteError
+        }
+      }
+
+      // 3. Clear local state
+      setUser(null)
+      setUserData(null)
+      
+      // Reset accent color
+      document.documentElement.style.setProperty('--accent-primary', '#000000')
+    } catch (error: any) {
+      console.error('Error deleting account:', error)
+      throw error
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{
@@ -202,6 +295,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGoogle,
         sendMagicLink,
         signOut,
+        deleteAccount,
       }}
     >
       {children}

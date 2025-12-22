@@ -1,7 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
@@ -10,7 +9,9 @@ import { MainContent } from '@/components/layout/MainContent'
 import { CardWithInsertButton } from '@/components/content/CardWithInsertButton'
 import { EditableText } from '@/components/ui/EditableText'
 import { Dropdown } from '@/components/ui/Dropdown'
-import { getPortfolioData } from '@/lib/firebase/queries'
+import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems } from '@/lib/firebase/queries'
 import {
   updateBio,
   updateMenuItem,
@@ -23,52 +24,62 @@ import {
 import { uploadFiles, deleteFile, isBlobUrl } from '@/lib/firebase/storage'
 import type { PortfolioData, Project, MenuItem, Slide } from '@/lib/firebase/types'
 import { generateSlug } from '@/lib/utils/slug'
-import styles from '../../page.module.scss'
+import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
+import { useRouter } from 'next/navigation'
+import { Eye } from 'lucide-react'
+import styles from '../../../page.module.scss'
 
 interface EditPageProps {
   params: {
+    username: string
     slug: string
   }
 }
 
 function EditPageContent({ params }: EditPageProps) {
-  const pathname = usePathname()
-  const { user } = useAuth()
+  const router = useRouter()
+  const { user, userData } = useAuth()
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPageId, setCurrentPageId] = useState<string | null>(null)
   // Track uploading state per project: { projectId: { [imageIndex]: boolean } }
   const [uploadingStates, setUploadingStates] = useState<Record<string, Record<number, boolean>>>({})
+  // Handle page name change from top input - updates immediately in UI, saves on blur
+  const [pageNameInput, setPageNameInput] = useState('')
 
-  // Extract page slug from params (e.g., "page")
+  // Extract page slug and username from params
   const pageSlug = params.slug
+  const username = params.username
 
   useEffect(() => {
     async function loadData() {
-      if (!user) {
+      if (!user || !userData) {
         setLoading(false)
         return
       }
+
+      // Verify username matches current user
+      if (userData.username !== username) {
+        console.error('Username mismatch')
+        setLoading(false)
+        return
+      }
+
       try {
-        const data = await getPortfolioData(pageSlug, user.uid)
-        setPortfolioData(data)
+        // Get pageId from slug (optimized)
+        const pageId = await getPageIdBySlug(pageSlug, user.uid)
         
-        // Find the current page ID by matching slug
-        // Also check href as fallback for backward compatibility
-        const pageMenuItem = data.menuItems.find(item => 
-          item.slug === pageSlug || 
-          item.href === `/${pageSlug}` ||
-          (pageSlug === 'page' && (!item.slug || item.slug === 'page'))
-        )
-        
-        // Fallback: if no exact match, use first menu item (for "page" slug, this should be the first one)
-        const foundPageId = pageMenuItem?.id || (data.menuItems.length > 0 ? data.menuItems[0].id : null)
-        
-        if (!foundPageId) {
-          console.error('Page not found for slug:', pageSlug, 'Available menu items:', data.menuItems)
-        } else {
-          setCurrentPageId(foundPageId)
+        if (!pageId) {
+          console.error('Page not found for slug:', pageSlug)
+          setLoading(false)
+          return
         }
+
+        setCurrentPageId(pageId)
+
+        // Load portfolio data using pageId (optimized query)
+        const data = await getPortfolioDataByPageId(pageId, user.uid)
+        setPortfolioData(data)
       } catch (error) {
         console.error('Error loading page data:', error)
       } finally {
@@ -76,7 +87,19 @@ function EditPageContent({ params }: EditPageProps) {
       }
     }
     loadData()
-  }, [pageSlug, user])
+  }, [pageSlug, username, user, userData])
+
+  // Sync pageNameInput with current page name when portfolioData or currentPageId changes
+  useEffect(() => {
+    if (portfolioData && currentPageId) {
+      const currentMenuItem = portfolioData.menuItems.find(
+        item => item.id === currentPageId
+      )
+      if (currentMenuItem) {
+        setPageNameInput(currentMenuItem.label)
+      }
+    }
+  }, [portfolioData, currentPageId])
 
   if (loading || !portfolioData) {
     return <div>Loading...</div>
@@ -84,7 +107,11 @@ function EditPageContent({ params }: EditPageProps) {
 
   // Update bio text - saves to Firebase on blur
   const handleBioChange = async (newText: string) => {
-    if (!user) return
+    if (!user) {
+      console.warn('⚠️ Cannot save bio: user not authenticated')
+      return
+    }
+    console.log('📝 handleBioChange called:', newText)
     setPortfolioData((currentData) => {
       if (!currentData) return currentData
       return {
@@ -94,15 +121,21 @@ function EditPageContent({ params }: EditPageProps) {
     })
 
     try {
+      console.log('💾 Saving bio to Firebase...')
       await updateBio(newText, user.uid)
+      console.log('✅ Bio saved successfully')
     } catch (error) {
-      console.error('Failed to save bio:', error)
+      console.error('❌ Failed to save bio:', error)
     }
   }
 
   // Update menu item - saves to Firebase on blur
   const handleMenuItemChange = async (id: string, newLabel: string) => {
-    if (!user) return
+    if (!user) {
+      console.warn('⚠️ Cannot save menu item: user not authenticated')
+      return
+    }
+    console.log('📝 handleMenuItemChange called:', { id, newLabel })
     setPortfolioData((currentData) => {
       if (!currentData) return currentData
       return {
@@ -114,31 +147,62 @@ function EditPageContent({ params }: EditPageProps) {
     })
 
     try {
+      console.log('💾 Saving menu item to Firebase...')
       await updateMenuItem(id, { label: newLabel }, user.uid)
+      console.log('✅ Menu item saved successfully')
     } catch (error) {
-      console.error('Failed to save menu item:', error)
+      console.error('❌ Failed to save menu item:', error)
+    }
+  }
+
+  const handlePageNameInputChange = (newLabel: string) => {
+    setPageNameInput(newLabel)
+  }
+
+  const handlePageNameBlur = async () => {
+    if (!currentPageId || !user || !portfolioData) {
+      console.warn('⚠️ Cannot save page name: missing data', { currentPageId, user: !!user, portfolioData: !!portfolioData })
+      return
+    }
+    
+    // Find the menu item for the current page
+    const currentMenuItem = portfolioData.menuItems.find(
+      item => item.id === currentPageId
+    )
+    
+    console.log('📝 handlePageNameBlur called:', { 
+      currentPageId, 
+      pageNameInput, 
+      currentMenuItemLabel: currentMenuItem?.label,
+      hasMenuItem: !!currentMenuItem 
+    })
+    
+    // Only save if the value actually changed
+    if (currentMenuItem && currentMenuItem.label !== pageNameInput) {
+      console.log('💾 Page name changed, saving...')
+      await handleMenuItemChange(currentMenuItem.id, pageNameInput)
+    } else {
+      console.log('ℹ️ Page name unchanged, skipping save')
     }
   }
 
   // Add new menu item - saves to Firebase immediately
   const handleAddMenuItem = async () => {
-    if (!user) return
+    if (!user || !userData) return
     const newItem: Omit<MenuItem, 'id'> = {
       label: 'PAGE',
       isActive: false,
-      // href will be set after creation using the menu item ID
     }
     
     try {
       const itemId = await addMenuItem(newItem, user.uid)
       // Reload menu items to get the slug that was generated
-      const updatedData = await getPortfolioData(pageSlug, user.uid)
-      const createdItem = updatedData.menuItems.find(item => item.id === itemId)
+      const menuItems = await getMenuItems(user.uid)
+      const createdItem = menuItems.find(item => item.id === itemId)
       const menuItem: MenuItem = createdItem || { 
         ...newItem, 
         id: itemId, 
         slug: generateSlug(newItem.label),
-        href: `/${generateSlug(newItem.label)}`,
       }
       
       setPortfolioData((currentData) => {
@@ -148,6 +212,10 @@ function EditPageContent({ params }: EditPageProps) {
           menuItems: [...currentData.menuItems, menuItem],
         }
       })
+
+      // Navigate to the new page's edit route
+      const newSlug = menuItem.slug || generateSlug(newItem.label)
+      router.push(`/${username}/${newSlug}/edit`)
     } catch (error) {
       console.error('Failed to add menu item:', error)
       // Fallback: add with temporary ID
@@ -160,6 +228,45 @@ function EditPageContent({ params }: EditPageProps) {
         }
       })
     }
+  }
+
+  const handleViewClick = async () => {
+    // Before navigating, ensure all pending changes are saved
+    // Blur any active input fields to trigger their save handlers
+    const activeElement = document.activeElement as HTMLElement
+    
+    // If there's an active input/textarea/contentEditable, blur it to trigger save
+    if (activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.isContentEditable
+    )) {
+      activeElement.blur()
+      
+      // Wait a bit for the blur handler to complete (save operations are async)
+      // This gives time for the save handlers to fire
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+    
+    // Also ensure page name input is saved if it has unsaved changes
+    if (currentPageId && portfolioData) {
+      const currentMenuItem = portfolioData.menuItems.find(
+        item => item.id === currentPageId
+      )
+      if (currentMenuItem && currentMenuItem.label !== pageNameInput) {
+        await handleMenuItemChange(currentMenuItem.id, pageNameInput)
+      }
+    }
+    
+    // Small delay to ensure all async saves complete
+    await new Promise(resolve => setTimeout(resolve, 200))
+    
+    router.push(`/${username}/${pageSlug}`)
+  }
+
+  const handleShareClick = async () => {
+    const portfolioUrl = getPortfolioUrl(username)
+    await shareUrl(portfolioUrl, `Check out ${username}'s portfolio`)
   }
 
   // Helper to create project data based on card type
@@ -771,7 +878,11 @@ function EditPageContent({ params }: EditPageProps) {
     field: keyof Project,
     value: string | string[]
   ) => {
-    if (!user) return
+    if (!user) {
+      console.warn('⚠️ Cannot save project field: user not authenticated')
+      return
+    }
+    console.log('📝 handleProjectFieldChange called:', { projectId, field, value })
     setPortfolioData((currentData) => {
       if (!currentData) return currentData
       const updatedSections = (currentData.sections || []).map((section) => {
@@ -793,9 +904,11 @@ function EditPageContent({ params }: EditPageProps) {
     })
 
     try {
+      console.log('💾 Saving project field to Firebase...')
       await updateProject(projectId, { [field]: value }, user.uid)
+      console.log('✅ Project field saved successfully')
     } catch (error) {
-      console.error('Failed to save project field:', error)
+      console.error('❌ Failed to save project field:', error)
     }
   }
 
@@ -1159,22 +1272,65 @@ function EditPageContent({ params }: EditPageProps) {
     await handleInsertBelow(-1, type)
   }
 
+  // Generate hrefs for menu items using username
+  // Ensure only one item is active - use the first matching item by slug
+  let foundActive = false
+  const menuItemsWithHrefs = portfolioData.menuItems.map((item) => {
+    const matchesSlug = item.slug === pageSlug
+    const shouldBeActive = matchesSlug && !foundActive
+    if (shouldBeActive) {
+      foundActive = true
+    }
+    return {
+      ...item,
+      href: `/${username}/${item.slug || 'page'}`,
+      isActive: shouldBeActive,
+      label: (
+        <EditableText
+          value={item.label}
+          onChange={(newLabel) => handleMenuItemChange(item.id, newLabel)}
+          variant="body"
+        />
+      ),
+    }
+  })
+
+  // Secondary menu items (SHARE and SETTINGS)
+  const secondaryMenuItems = [
+    { id: 'share', label: 'SHARE', onClick: handleShareClick },
+    { id: 'settings', label: 'SETTINGS', href: '/settings' },
+  ]
+
   return (
     <div className={styles.page}>
       <Sidebar 
-        menuItems={portfolioData.menuItems.map((item) => ({
-          ...item,
-          label: (
-            <EditableText
-              value={item.label}
-              onChange={(newLabel) => handleMenuItemChange(item.id, newLabel)}
-              variant="body"
-            />
-          ),
-        }))}
+        menuItems={menuItemsWithHrefs}
+        secondaryMenuItems={secondaryMenuItems}
         onAddItem={handleAddMenuItem}
       />
       <MainContent>
+        {/* Page Name and View Button Row - Only visible to page owner */}
+        {userData?.username === username && (
+          <div className={styles.pageHeaderRow}>
+          <Input
+            type="text"
+            placeholder="untitled"
+            value={pageNameInput}
+            onChange={(e) => handlePageNameInputChange(e.target.value)}
+            onBlur={handlePageNameBlur}
+            inputSize="md"
+            style={{ flex: 1 }}
+          />
+          <Button
+            variant="medium"
+            size="md"
+            onClick={handleViewClick}
+          >
+            <Eye size={16} />
+            VIEW
+          </Button>
+        </div>
+        )}
         {/* Projects Section */}
         <div className={styles.projectsSection}>
           {/* Show default add button when there's no content */}

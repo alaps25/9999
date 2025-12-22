@@ -1,7 +1,9 @@
 import { doc, updateDoc, collection, addDoc, getDocs, query, orderBy, setDoc, where, deleteDoc } from 'firebase/firestore'
-import { db } from './config'
+import { ref, listAll, deleteObject } from 'firebase/storage'
+import { db, storage } from './config'
 import type { Project, MenuItem, Slide } from './types'
 import { generateSlug, generateUniqueSlug } from '../utils/slug'
+import { isBlobUrl } from './storage'
 
 /**
  * Check if Firebase is configured
@@ -24,20 +26,25 @@ export async function updateBio(text: string, userId: string): Promise<void> {
   }
 
   try {
+    console.log('🔄 Updating bio:', { text, userId })
     const bioRef = collection(db!, 'bio')
     const q = query(bioRef, where('userId', '==', userId))
     const bioDocs = await getDocs(q)
     
     if (bioDocs.empty) {
       // Create new bio document
+      console.log('📝 Creating new bio document')
       await addDoc(bioRef, { text, userId })
+      console.log('✅ Bio created successfully')
     } else {
       // Update existing bio document
       const bioDoc = bioDocs.docs[0]
+      console.log('📝 Updating existing bio document:', bioDoc.id)
       await updateDoc(doc(db!, 'bio', bioDoc.id), { text, userId })
+      console.log('✅ Bio updated successfully')
     }
   } catch (error) {
-    console.error('Error updating bio:', error)
+    console.error('❌ Error updating bio:', error)
     throw error
   }
 }
@@ -52,10 +59,12 @@ export async function updateMenuItem(itemId: string, updates: Partial<MenuItem>,
   }
 
   try {
+    console.log('🔄 Updating menu item:', { itemId, updates, userId })
     const menuItemRef = doc(db!, 'menu', itemId)
     await updateDoc(menuItemRef, { ...updates, userId })
+    console.log('✅ Menu item updated successfully')
   } catch (error) {
-    console.error('Error updating menu item:', error)
+    console.error('❌ Error updating menu item:', error)
     throw error
   }
 }
@@ -87,12 +96,7 @@ export async function addMenuItem(item: Omit<MenuItem, 'id'>, userId: string): P
       slug: slug,
       userId: userId, // Associate with user
       order: Date.now(), // Use timestamp as order
-    })
-    
-    // Update href to match slug
-    const href = `/${slug}`
-    await updateDoc(doc(db!, 'menu', docRef.id), {
-      href: href,
+      // href is deprecated - routes are now generated from username + slug
     })
     
     return docRef.id
@@ -112,10 +116,12 @@ export async function updateProject(projectId: string, updates: Partial<Project>
   }
 
   try {
+    console.log('🔄 Updating project:', { projectId, updates, userId })
     const projectRef = doc(db!, 'projects', projectId)
     await updateDoc(projectRef, { ...updates, userId })
+    console.log('✅ Project updated successfully')
   } catch (error) {
-    console.error('Error updating project:', error)
+    console.error('❌ Error updating project:', error)
     throw error
   }
 }
@@ -221,6 +227,199 @@ export async function saveUserSettings(
     await setDoc(userRef, { settings }, { merge: true })
   } catch (error) {
     console.error('Error saving user settings:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a page (menu item) and all its associated projects
+ * This includes: the menu item, all projects for that page, and their associated images
+ */
+export async function deletePage(pageId: string, userId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, skipping page deletion')
+    return
+  }
+
+  try {
+    console.log('🔄 Deleting page:', { pageId, userId })
+    
+    // 1. Get all projects for this page
+    const projectsRef = collection(db!, 'projects')
+    const projectsQuery = query(
+      projectsRef, 
+      where('userId', '==', userId),
+      where('pageId', '==', pageId)
+    )
+    const projectDocs = await getDocs(projectsQuery)
+    
+    // 2. Delete all images from projects before deleting projects
+    const imageUrls: string[] = []
+    for (const projectDoc of projectDocs.docs) {
+      const project = projectDoc.data() as Project
+      
+      // Collect image URLs
+      if (project.singleImage) {
+        const images = Array.isArray(project.singleImage) ? project.singleImage : [project.singleImage]
+        imageUrls.push(...images.filter(url => url && !isBlobUrl(url)))
+      }
+      
+      if (project.slides) {
+        for (const slide of project.slides) {
+          if (slide.image && !isBlobUrl(slide.image)) {
+            imageUrls.push(slide.image)
+          }
+        }
+      }
+    }
+    
+    // Delete all project images from Storage
+    if (storage && imageUrls.length > 0) {
+      await Promise.all(
+        imageUrls.map(async (url) => {
+          try {
+            const urlObj = new URL(url)
+            const pathMatch = urlObj.pathname.match(/\/o\/(.+)\?/)
+            if (pathMatch && storage) {
+              const filePath = decodeURIComponent(pathMatch[1])
+              const storageRef = ref(storage, filePath)
+              await deleteObject(storageRef)
+            }
+          } catch (error) {
+            console.error('Error deleting image:', error)
+            // Continue with other deletions
+          }
+        })
+      )
+    }
+    
+    // 3. Delete all projects for this page
+    await Promise.all(projectDocs.docs.map(docSnapshot => deleteDoc(doc(db!, 'projects', docSnapshot.id))))
+    console.log(`✅ Deleted ${projectDocs.docs.length} projects`)
+    
+    // 4. Delete the menu item (page)
+    const menuItemRef = doc(db!, 'menu', pageId)
+    await deleteDoc(menuItemRef)
+    console.log('✅ Page deleted successfully')
+  } catch (error) {
+    console.error('❌ Error deleting page:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete all user data from Firestore and Storage
+ * This includes: menu items, projects, bio, settings, userTags, and all storage files
+ */
+export async function deleteAllUserData(userId: string): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, skipping user data deletion')
+    return
+  }
+
+  try {
+    // 1. Delete all menu items
+    const menuRef = collection(db!, 'menu')
+    const menuQuery = query(menuRef, where('userId', '==', userId))
+    const menuDocs = await getDocs(menuQuery)
+    await Promise.all(menuDocs.docs.map(docSnapshot => deleteDoc(doc(db!, 'menu', docSnapshot.id))))
+
+    // 2. Delete all projects and their associated images
+    const projectsRef = collection(db!, 'projects')
+    const projectsQuery = query(projectsRef, where('userId', '==', userId))
+    const projectDocs = await getDocs(projectsQuery)
+    
+    // Delete all images from projects before deleting projects
+    const imageUrls: string[] = []
+    for (const projectDoc of projectDocs.docs) {
+      const project = projectDoc.data() as Project
+      
+      // Collect image URLs
+      if (project.singleImage) {
+        const images = Array.isArray(project.singleImage) ? project.singleImage : [project.singleImage]
+        imageUrls.push(...images.filter(url => url && !isBlobUrl(url)))
+      }
+      
+      if (project.slides) {
+        for (const slide of project.slides) {
+          if (slide.image && !isBlobUrl(slide.image)) {
+            imageUrls.push(slide.image)
+          }
+        }
+      }
+    }
+    
+    // Delete all project images from Storage
+    if (storage && imageUrls.length > 0) {
+      await Promise.all(
+        imageUrls.map(async (url) => {
+          try {
+            const urlObj = new URL(url)
+            const pathMatch = urlObj.pathname.match(/\/o\/(.+)\?/)
+            if (pathMatch && storage) {
+              const filePath = decodeURIComponent(pathMatch[1])
+              const storageRef = ref(storage, filePath)
+              await deleteObject(storageRef)
+            }
+          } catch (error) {
+            console.error('Error deleting image:', error)
+            // Continue with other deletions
+          }
+        })
+      )
+    }
+    
+    // Delete all projects
+    await Promise.all(projectDocs.docs.map(docSnapshot => deleteDoc(doc(db!, 'projects', docSnapshot.id))))
+
+    // 3. Delete bio
+    const bioRef = collection(db!, 'bio')
+    const bioQuery = query(bioRef, where('userId', '==', userId))
+    const bioDocs = await getDocs(bioQuery)
+    await Promise.all(bioDocs.docs.map(docSnapshot => deleteDoc(doc(db!, 'bio', docSnapshot.id))))
+
+    // 4. Delete userTags
+    const userTagsRef = doc(db!, 'userTags', userId)
+    try {
+      await deleteDoc(userTagsRef)
+    } catch (error) {
+      // Document might not exist, that's okay
+      console.log('UserTags document not found or already deleted')
+    }
+
+    // 5. Delete user document (settings)
+    const userRef = doc(db!, 'users', userId)
+    try {
+      await deleteDoc(userRef)
+    } catch (error) {
+      console.error('Error deleting user document:', error)
+      // Continue anyway
+    }
+
+    // 6. Delete all files from Storage for this user
+    if (storage) {
+      try {
+        const userStorageRef = ref(storage, `users/${userId}`)
+        const listResult = await listAll(userStorageRef)
+        
+        // Delete all files
+        await Promise.all(
+          listResult.items.map(item => deleteObject(item).catch(err => {
+            console.error(`Error deleting file ${item.fullPath}:`, err)
+          }))
+        )
+        
+        // Note: Firebase Storage doesn't automatically delete empty folders,
+        // but that's fine - they don't take up space
+      } catch (error) {
+        console.error('Error deleting user storage files:', error)
+        // Continue anyway - files might not exist
+      }
+    }
+
+    console.log('All user data deleted successfully')
+  } catch (error) {
+    console.error('Error deleting user data:', error)
     throw error
   }
 }

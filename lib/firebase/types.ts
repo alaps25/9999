@@ -9,6 +9,8 @@ export interface MenuItem {
   href?: string // Deprecated: use slug instead, kept for backward compatibility
   isActive?: boolean
   tags?: string[] // Tags for pages (shared tag pool with projects)
+  order?: number // Order for sorting menu items
+  userId?: string // User ID who owns this menu item
 }
 
 export interface Slide {

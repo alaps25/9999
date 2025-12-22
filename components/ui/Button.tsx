@@ -44,7 +44,16 @@ export const Button: React.FC<ButtonProps> = ({
 
   if (href || asLink) {
     return (
-      <Link href={href || '#'} className={buttonClasses} onClick={props.onClick as any}>
+      <Link 
+        href={href || '#'} 
+        className={buttonClasses} 
+        onClick={(e) => {
+          // If onClick is provided and prevents default, don't navigate
+          if (props.onClick) {
+            props.onClick(e as any)
+          }
+        }}
+      >
         {children}
       </Link>
     )

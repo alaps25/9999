@@ -38,15 +38,8 @@ export const TagInput: React.FC<TagInputProps> = ({
   const containerRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLDivElement>(null)
 
-  // Load user tags on mount
-  useEffect(() => {
-    if (user) {
-      loadUserTags()
-    }
-  }, [user])
-
   // Load user tags from Firestore
-  const loadUserTags = async () => {
+  const loadUserTags = React.useCallback(async () => {
     if (!user) return
     try {
       const userTags = await getUserTags(user.uid)
@@ -54,7 +47,14 @@ export const TagInput: React.FC<TagInputProps> = ({
     } catch (error) {
       console.error('Error loading user tags:', error)
     }
-  }
+  }, [user])
+
+  // Load user tags on mount
+  useEffect(() => {
+    if (user) {
+      loadUserTags()
+    }
+  }, [user, loadUserTags])
 
   // Filter suggestions based on input
   useEffect(() => {
