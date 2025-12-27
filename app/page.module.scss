@@ -138,3 +138,73 @@
   opacity: 0.7;
 }
 
+// Reorder feature styles
+.reorderCardWrapper {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+  outline: 1px solid $accent-primary; // Complete border around wrapper (handle + card)
+  overflow: hidden; // Always clip
+}
+
+.reorderHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  cursor: grab;
+  background-color: $accent-secondary;
+  color: $accent-primary;
+  user-select: none;
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  svg {
+    opacity: 0.6;
+  }
+}
+
+.reorderCardContent {
+  flex: 1;
+  position: relative;
+  overflow: hidden; // Always clip content
+}
+
+.reorderCard {
+  position: relative;
+  overflow: hidden; // Always clip
+  transition: height 0.3s ease;
+  background-color: $accent-secondary;
+  
+  &.reorderCardShrunk {
+    height: 60px;
+    
+    // Gradient fade effect for content cut off
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 1px; // Position above border (1px for outline width)
+      left: 0;
+      right: 0;
+      height: 20px;
+      background: linear-gradient(to bottom, transparent, $accent-secondary);
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    // Clip the content holder inside the card
+    :global(.contentHolder) {
+      max-height: 60px;
+      overflow: hidden;
+    }
+  }
+  
+  // Remove outline from ProjectCard in reorder mode since we have it on wrapper
+  :global(.projectCard) {
+    outline: none;
+  }
+}
+

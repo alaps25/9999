@@ -2,11 +2,31 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
 import { CardWithInsertButton } from '@/components/content/CardWithInsertButton'
+import { ProjectCard } from '@/components/content/ProjectCard'
 import { EditableText } from '@/components/ui/EditableText'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Button } from '@/components/ui/Button'
@@ -20,13 +40,15 @@ import {
   addProject,
   updateProjectSlides,
   deleteProject,
+  updateProjectOrders,
 } from '@/lib/firebase/mutations'
 import { uploadFiles, deleteFile, isBlobUrl } from '@/lib/firebase/storage'
 import type { PortfolioData, Project, MenuItem, Slide } from '@/lib/firebase/types'
 import { generateSlug } from '@/lib/utils/slug'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
+import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { Eye } from 'lucide-react'
+import { Eye, GripVertical, Save } from 'lucide-react'
 import styles from '../../../page.module.scss'
 
 interface EditPageProps {
@@ -46,10 +68,97 @@ function EditPageContent({ params }: EditPageProps) {
   const [uploadingStates, setUploadingStates] = useState<Record<string, Record<number, boolean>>>({})
   // Handle page name change from top input - updates immediately in UI, saves on blur
   const [pageNameInput, setPageNameInput] = useState('')
+  // Reorder mode state
+  const [isReorderMode, setIsReorderMode] = useState(false)
+  const [reorderedSections, setReorderedSections] = useState<PortfolioData['sections']>([])
 
   // Extract page slug and username from params
   const pageSlug = params.slug
   const username = params.username
+
+  // Initialize sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Initialize reordered sections when entering reorder mode
+  useEffect(() => {
+    if (isReorderMode && portfolioData) {
+      // Combine bio (if exists) and sections for reordering
+      const allSections: PortfolioData['sections'] = []
+      if (portfolioData.bio?.text) {
+        allSections.push({
+          id: 'bio',
+          type: 'text',
+          content: portfolioData.bio.text,
+        })
+      }
+      allSections.push(...portfolioData.sections)
+      setReorderedSections(allSections)
+    }
+  }, [isReorderMode, portfolioData])
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setReorderedSections((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id)
+        const newIndex = items.findIndex((item) => item.id === over.id)
+        return arrayMove(items, oldIndex, newIndex)
+      })
+    }
+  }
+
+  // Handle entering reorder mode
+  const handleEnterReorderMode = () => {
+    setIsReorderMode(true)
+  }
+
+  // Handle saving reordered positions
+  const handleSaveReorder = async () => {
+    if (!user || !portfolioData || !currentPageId) return
+
+    try {
+      // Calculate new order values based on position
+      // Bio is always first if it exists, then projects
+      const projectOrders: { projectId: string; order: number }[] = []
+      let orderIndex = 0
+
+      reorderedSections.forEach((section) => {
+        if (section.type === 'project' && section.project) {
+          projectOrders.push({
+            projectId: section.project.id,
+            order: orderIndex++,
+          })
+        }
+      })
+
+      // Update project orders in Firebase
+      if (projectOrders.length > 0) {
+        await updateProjectOrders(projectOrders, user.uid)
+      }
+
+      // Reload portfolio data to reflect new order
+      const updatedData = await getPortfolioDataByPageId(currentPageId, user.uid)
+      setPortfolioData(updatedData)
+
+      // Exit reorder mode
+      setIsReorderMode(false)
+    } catch (error) {
+      console.error('Error saving reordered positions:', error)
+    }
+  }
+
+  // Handle canceling reorder mode
+  const handleCancelReorder = () => {
+    setIsReorderMode(false)
+    setReorderedSections([])
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -1301,89 +1410,213 @@ function EditPageContent({ params }: EditPageProps) {
     { id: 'settings', label: 'SETTINGS', href: '/settings' },
   ]
 
+  // Sortable card wrapper component
+  const SortableCard = ({ id, children }: { id: string; children: React.ReactNode }) => {
+    const {
+      attributes,
+      listeners,
+      setNodeRef,
+      transform,
+      transition,
+      isDragging,
+    } = useSortable({ id })
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    }
+
+    return (
+      <div ref={setNodeRef} style={style} {...attributes}>
+        <div className={styles.reorderCardWrapper}>
+          <div className={styles.reorderHandle} {...listeners}>
+            <GripVertical size={16} />
+          </div>
+          <div className={styles.reorderCardContent}>
+            {children}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.page}>
-      <Sidebar 
-        menuItems={menuItemsWithHrefs}
-        secondaryMenuItems={secondaryMenuItems}
-        onAddItem={handleAddMenuItem}
-      />
+      {!isReorderMode && (
+        <Sidebar 
+          menuItems={menuItemsWithHrefs}
+          secondaryMenuItems={secondaryMenuItems}
+          onAddItem={handleAddMenuItem}
+        />
+      )}
       <MainContent>
         {/* Page Name and View Button Row - Only visible to page owner */}
         {userData?.username === username && (
           <div className={styles.pageHeaderRow}>
-          <Input
-            type="text"
-            placeholder="untitled"
-            value={pageNameInput}
-            onChange={(e) => handlePageNameInputChange(e.target.value)}
-            onBlur={handlePageNameBlur}
-            inputSize="md"
-            style={{ flex: 1 }}
-          />
-          <Button
-            variant="medium"
-            size="md"
-            onClick={handleViewClick}
-          >
-            <Eye size={16} />
-            VIEW
-          </Button>
+          {isReorderMode ? (
+            <>
+              <div style={{ flex: 1 }} />
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleCancelReorder}
+              >
+                CANCEL
+              </Button>
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleSaveReorder}
+              >
+                <Save size={16} />
+                SAVE
+              </Button>
+            </>
+          ) : (
+            <>
+              <Input
+                type="text"
+                placeholder="untitled"
+                value={pageNameInput}
+                onChange={(e) => handlePageNameInputChange(e.target.value)}
+                onBlur={handlePageNameBlur}
+                inputSize="md"
+                style={{ flex: 1 }}
+              />
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleEnterReorderMode}
+              >
+                <GripVertical size={16} />
+                REORDER
+              </Button>
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleViewClick}
+              >
+                <Eye size={16} />
+                VIEW
+              </Button>
+            </>
+          )}
         </div>
         )}
         {/* Projects Section */}
         <div className={styles.projectsSection}>
-          {/* Show default add button when there's no content */}
-          {!hasContent && (
-            <div className={styles.addProjectButton}>
-              <Dropdown
-                options={insertOptions}
-                placeholder="Add"
-                variant="low"
-                size="md"
-                alwaysShowPlaceholder={true}
-                onSelect={(value) => handleDefaultAdd(value)}
-              />
-            </div>
-          )}
-
-          {/* Bio Section as ProjectCard variant */}
-          <AnimatePresence mode="popLayout">
-            {portfolioData.bio && (
-              <motion.div
-                key="bio"
-                initial={{ opacity: 0, y: -10, scale: 0.98 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                transition={{ 
-                  duration: 0.4, 
-                  ease: [0.16, 1, 0.3, 1], // Custom cubic-bezier for smooth easing
-                  opacity: { duration: 0.3 }
-                }}
+          {isReorderMode ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={reorderedSections.map((s) => s.id)}
+                strategy={verticalListSortingStrategy}
               >
-                <CardWithInsertButton
-                  variant="bio"
-                  bioText={portfolioData.bio.text}
-                  isEditable
-                  onBioChange={handleBioChange}
-                  hasCardAbove={false}
-                  hasCardBelow={portfolioData.sections.length > 0}
-                  insertOptions={insertOptions}
-                  onInsertAbove={(cardType) => {
-                    const type = (cardType as 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text') || 'v-card'
-                    handleInsertAbove(0, type)
-                  }}
-                  onInsertBelow={(cardType) => {
-                    const type = (cardType as 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text') || 'v-card'
-                    handleInsertBelow(-1, type)
-                  }}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          <AnimatePresence mode="popLayout">
-            {portfolioData.sections.map((section, index) => {
+                <AnimatePresence mode="popLayout">
+                  {reorderedSections.map((section) => {
+                    if (section.type === 'project' && section.project) {
+                      const isBigText = !section.project.content?.showTitle && 
+                                        section.project.content?.showDescription && 
+                                        !section.project.content?.showSingleImage && 
+                                        !section.project.content?.showSlides && 
+                                        !section.project.content?.showPhotoCarousel &&
+                                        !section.project.content?.showTags
+                      
+                      const isMediaCard = !section.project.content?.showTitle && 
+                                          !section.project.content?.showDescription && 
+                                          section.project.content?.showSingleImage && 
+                                          !section.project.content?.showSlides && 
+                                          !section.project.content?.showPhotoCarousel &&
+                                          !section.project.content?.showTags
+                      
+                      return (
+                        <SortableCard key={section.id} id={section.id}>
+                          <div className={cn(styles.reorderCard, styles.reorderCardShrunk)}>
+                            <ProjectCard
+                              project={section.project}
+                              variant={isBigText ? 'bio' : 'project'}
+                              bioText={isBigText ? section.project.description : undefined}
+                              noPadding={isMediaCard}
+                              isEditable={false}
+                            />
+                          </div>
+                        </SortableCard>
+                      )
+                    } else if (section.type === 'text' && section.id === 'bio') {
+                      return (
+                        <SortableCard key={section.id} id={section.id}>
+                          <div className={cn(styles.reorderCard, styles.reorderCardShrunk)}>
+                            <ProjectCard
+                              variant="bio"
+                              bioText={section.content}
+                              isEditable={false}
+                            />
+                          </div>
+                        </SortableCard>
+                      )
+                    }
+                    return null
+                  })}
+                </AnimatePresence>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <>
+              {/* Show default add button when there's no content */}
+              {!hasContent && (
+                <div className={styles.addProjectButton}>
+                  <Dropdown
+                    options={insertOptions}
+                    placeholder="Add"
+                    variant="low"
+                    size="md"
+                    alwaysShowPlaceholder={true}
+                    onSelect={(value) => handleDefaultAdd(value)}
+                  />
+                </div>
+              )}
+
+              {/* Bio Section as ProjectCard variant */}
+              <AnimatePresence mode="popLayout">
+                {portfolioData.bio && (
+                  <motion.div
+                    key="bio"
+                    initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                    transition={{ 
+                      duration: 0.4, 
+                      ease: [0.16, 1, 0.3, 1], // Custom cubic-bezier for smooth easing
+                      opacity: { duration: 0.3 }
+                    }}
+                  >
+                    <CardWithInsertButton
+                      variant="bio"
+                      bioText={portfolioData.bio.text}
+                      isEditable
+                      onBioChange={handleBioChange}
+                      hasCardAbove={false}
+                      hasCardBelow={portfolioData.sections.length > 0}
+                      insertOptions={insertOptions}
+                      onInsertAbove={(cardType) => {
+                        const type = (cardType as 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text') || 'v-card'
+                        handleInsertAbove(0, type)
+                      }}
+                      onInsertBelow={(cardType) => {
+                        const type = (cardType as 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text') || 'v-card'
+                        handleInsertBelow(-1, type)
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+              
+              <AnimatePresence mode="popLayout">
+                {portfolioData.sections.map((section, index) => {
             if (section.type === 'project' && section.project) {
               const isBigText = !section.project.content?.showTitle && 
                                 section.project.content?.showDescription && 
@@ -1455,7 +1688,9 @@ function EditPageContent({ params }: EditPageProps) {
             }
             return null
             })}
-          </AnimatePresence>
+              </AnimatePresence>
+            </>
+          )}
         </div>
       </MainContent>
     </div>

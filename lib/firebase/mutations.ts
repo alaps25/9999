@@ -186,6 +186,37 @@ export async function deleteProject(projectId: string, userId: string): Promise<
 }
 
 /**
+ * Update project order for multiple projects
+ * Used for reordering cards on a page
+ */
+export async function updateProjectOrders(
+  projectOrders: { projectId: string; order: number }[],
+  userId: string
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, skipping project order update')
+    return
+  }
+
+  try {
+    console.log('🔄 Updating project orders:', { projectOrders, userId })
+    
+    // Update all projects in parallel
+    await Promise.all(
+      projectOrders.map(({ projectId, order }) => {
+        const projectRef = doc(db!, 'projects', projectId)
+        return updateDoc(projectRef, { order, userId })
+      })
+    )
+    
+    console.log('✅ Project orders updated successfully')
+  } catch (error) {
+    console.error('❌ Error updating project orders:', error)
+    throw error
+  }
+}
+
+/**
  * Save user tags to Firestore
  * Creates or updates the userTags document for the user
  */
