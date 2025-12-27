@@ -32,8 +32,9 @@
   border-radius: 0;
   
   // Placeholder styling
+  // Use color-mix to work with CSS custom properties (mix with white background for 50% opacity effect)
   &::placeholder {
-    color: rgba($accent-primary, 0.5);
+    color: color-mix(in srgb, var(--accent-primary, #000000) 50%, #FFFFFF);
     opacity: 1;
   }
   

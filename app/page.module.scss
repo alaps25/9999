@@ -76,7 +76,7 @@
 }
 
 .loginCardsContainer {
-  max-width: 500px;
+  max-width: 360px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -112,8 +112,8 @@
 
 .loginForm {
   display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
+  flex-direction:column;
+  gap: 0;
 }
 
 
