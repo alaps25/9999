@@ -14,14 +14,14 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
  * Top, right, left borders: 30% opacity
  * Bottom border: 100% opacity
  */
-export const Input: React.FC<InputProps> = ({
+export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   variant = 'default',
   inputSize = 'md',
   fullWidth = false,
   error = false,
   className,
   ...props
-}) => {
+}, ref) => {
   const inputClasses = cn(
     styles.input,
     styles[variant],
@@ -33,10 +33,13 @@ export const Input: React.FC<InputProps> = ({
 
   return (
     <input
+      ref={ref}
       type={props.type || 'text'}
       className={inputClasses}
       {...props}
     />
   )
-}
+})
+
+Input.displayName = 'Input'
 
