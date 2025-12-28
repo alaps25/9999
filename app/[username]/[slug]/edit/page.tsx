@@ -411,7 +411,7 @@ function EditPageContent({ params }: EditPageProps) {
           ...baseProject,
           title: 'Title',
           description: 'Description',
-          tags: ['Tag', 'Tag'], // Two placeholder tags
+          tags: [], // No tags by default
           content: {
             showTitle: true,
             showDescription: true,
@@ -430,7 +430,7 @@ function EditPageContent({ params }: EditPageProps) {
           ...baseProject,
           title: 'Title',
           description: 'Description',
-          tags: ['Tag', 'Tag'], // Two placeholder tags
+          tags: [], // No tags by default
           content: {
             showTitle: true,
             showDescription: true,
@@ -468,7 +468,7 @@ function EditPageContent({ params }: EditPageProps) {
           ...baseProject,
           title: 'Title',
           description: 'Description',
-          tags: ['Tag', 'Tag'], // Two placeholder tags
+          tags: [], // No tags by default
           content: {
             showTitle: true,
             showDescription: true,
@@ -512,7 +512,7 @@ function EditPageContent({ params }: EditPageProps) {
           ...baseProject,
           title: 'Title',
           description: 'Description',
-          tags: ['Tag', 'Tag'], // Two placeholder tags
+          tags: [], // No tags by default
           content: {
             showTitle: true,
             showDescription: true,

@@ -175,7 +175,6 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               <TagInput
                 tags={displayTags}
                 onChange={(tags) => onFieldChange?.('tags', tags)}
-                placeholder="Tag"
               />
             ) : (
               displayTags.length > 0 && (
