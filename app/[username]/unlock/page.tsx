@@ -113,7 +113,7 @@ export default function UnlockPage() {
         
         <div className={styles.unlockSection}>
           <Typography variant="body" className={styles.lockedText}>
-            I'm locked
+            I&apos;m locked
           </Typography>
           
           <div className={styles.passwordRow}>
