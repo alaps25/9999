@@ -9,9 +9,12 @@ import { MainContent } from '@/components/layout/MainContent'
 import { ProjectCard } from '@/components/content/ProjectCard'
 import { Button } from '@/components/ui/Button'
 import { Typography } from '@/components/ui/Typography'
-import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems } from '@/lib/firebase/queries'
+import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { deletePage } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
+import { getUserIdByUsername } from '@/lib/utils/user'
+import { hasValidSession } from '@/lib/utils/session'
+import { applyTheme } from '@/lib/utils/theme'
 import styles from '../../page.module.scss'
 import type { PortfolioData } from '@/lib/firebase/types'
 import { Edit, Trash2 } from 'lucide-react'
@@ -32,21 +35,63 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
 
   React.useEffect(() => {
     async function loadData() {
-      if (!user || !userData) {
-        setLoading(false)
-        return
-      }
-
-      // Verify username matches current user (for now, only support own pages)
-      if (userData.username !== username) {
-        console.error('Username mismatch - public viewing not yet supported')
-        setLoading(false)
-        return
-      }
-
       try {
+        // Get userId - either from current user or from username lookup
+        let targetUserId: string | null = null
+        
+        if (user && userData && userData.username === username) {
+          // User is viewing their own page
+          targetUserId = user.uid
+        } else {
+          // User is viewing someone else's page - need to check visibility
+          targetUserId = await getUserIdByUsername(username)
+          
+          if (!targetUserId) {
+            console.error('User not found for username:', username)
+            setLoading(false)
+            return
+          }
+          
+          // Check if page is private and apply owner's settings
+          const settings = await getUserSettings(targetUserId)
+          if (settings?.visibility === 'PRIVATE') {
+            // Check if user has valid session
+            if (!hasValidSession(targetUserId)) {
+              // Redirect to unlock page
+              router.push(`/${username}/unlock?redirect=${encodeURIComponent(`/${username}/${slug}`)}`)
+              setLoading(false) // Set loading to false before redirect
+              return
+            }
+          }
+          
+          // Apply owner's settings (accent color, theme, rounded corners) for public viewers
+          if (settings) {
+            const accentColor = settings.accentColor || '#000000'
+            const theme = (settings.theme || 'AUTO') as 'AUTO' | 'LIGHT' | 'DARK'
+            
+            // Apply theme (includes accent color and theme mode)
+            applyTheme(theme, accentColor)
+            
+            if (settings.roundedCorners) {
+              // Cap rounded corners at 48px max
+              const numValue = parseInt(settings.roundedCorners, 10)
+              const cappedValue = isNaN(numValue) ? 0 : Math.min(Math.max(numValue, 0), 48)
+              document.documentElement.style.setProperty('--border-radius', `${cappedValue}px`)
+            } else {
+              // Reset to 0 if no rounded corners setting
+              document.documentElement.style.setProperty('--border-radius', '0px')
+            }
+          }
+        }
+        // Note: If user is viewing their own page, settings are already applied by AuthContext
+
+        if (!targetUserId) {
+          setLoading(false)
+          return
+        }
+
         // Get pageId from slug
-        const pageId = await getPageIdBySlug(slug, user.uid)
+        const pageId = await getPageIdBySlug(slug, targetUserId)
         
         if (!pageId) {
           console.error('Page not found for slug:', slug)
@@ -57,7 +102,7 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
         setCurrentPageId(pageId)
 
         // Load portfolio data using pageId (optimized query)
-        const data = await getPortfolioDataByPageId(pageId, user.uid)
+        const data = await getPortfolioDataByPageId(pageId, targetUserId)
         setPortfolioData(data)
       } catch (error) {
         console.error('Error loading portfolio data:', error)
@@ -66,7 +111,7 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
       }
     }
     loadData()
-  }, [slug, username, user, userData])
+  }, [slug, username, user, userData, router])
 
   const handleEditClick = () => {
     router.push(`/${username}/${slug}/edit`)
@@ -141,9 +186,10 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
   })
 
   // Secondary menu items (SHARE and SETTINGS)
+  // Only show SETTINGS if user is viewing their own page
   const secondaryMenuItems = [
     { id: 'share', label: 'SHARE', onClick: handleShareClick },
-    { id: 'settings', label: 'SETTINGS', href: '/settings' },
+    ...(userData?.username === username ? [{ id: 'settings', label: 'SETTINGS', href: '/settings' }] : []),
   ]
 
   return (

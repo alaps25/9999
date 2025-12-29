@@ -7,6 +7,9 @@ export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElem
   inputSize?: 'sm' | 'md' | 'lg' // Renamed to avoid conflict with HTMLInputElement.size
   fullWidth?: boolean
   error?: boolean
+  leftIcon?: React.ReactNode // Icon to display on the left side
+  rightIcon?: React.ReactNode // Icon to display on the right side (clickable)
+  onRightIconClick?: () => void // Handler for right icon click
 }
 
 /**
@@ -19,6 +22,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
   inputSize = 'md',
   fullWidth = false,
   error = false,
+  leftIcon,
+  rightIcon,
+  onRightIconClick,
   className,
   ...props
 }, ref) => {
@@ -28,8 +34,40 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(({
     styles[inputSize],
     fullWidth && styles.fullWidth,
     error && styles.error,
+    leftIcon && styles.withLeftIcon,
+    rightIcon && styles.withRightIcon,
     className
   )
+
+  if (leftIcon || rightIcon) {
+    return (
+      <div className={styles.inputWrapper}>
+        {leftIcon && <div className={styles.leftIcon}>{leftIcon}</div>}
+        <input
+          ref={ref}
+          type={props.type || 'text'}
+          className={inputClasses}
+          {...props}
+        />
+        {rightIcon && (
+          <div 
+            className={styles.rightIcon}
+            onClick={onRightIconClick}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                onRightIconClick?.()
+              }
+            }}
+          >
+            {rightIcon}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <input

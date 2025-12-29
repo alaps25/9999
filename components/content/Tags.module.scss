@@ -10,8 +10,8 @@
   padding: 0.25rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 500;
-  background-color: $gray-100;
-  color: $gray-700;
-  outline: 1px solid $gray-200;
+  background-color: var(--accent-secondary, $gray-100);
+  color: var(--text-secondary, $gray-700);
+  outline: 1px solid var(--accent-primary, $gray-200);
 }
 

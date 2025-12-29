@@ -12,6 +12,7 @@
   width: 100%;
   height: 395.5px; // Fixed height from design (521.5 - 24 - 102 = 395.5)
   outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
   padding: 24px;
   align-items: stretch; // Ensure both sides stretch to same height
   box-sizing: border-box;
@@ -44,7 +45,7 @@
 
 .descriptionText {
   font-size: 10px;
-  color: #4B4B4B; // From design: r: 0.2939999997615814
+  color: var(--text-secondary, #4B4B4B); // Use theme-aware color
   line-height: 1.5;
   font-family: $font-family-mono;
 }
@@ -68,7 +69,7 @@
   position: relative;
   width: 100%;
   height: 100%;
-  background-color: $gray-100;
+  background-color: var(--accent-secondary, $gray-100);
   overflow: hidden;
   flex-shrink: 0;
   
@@ -86,7 +87,7 @@
     position: relative;
     width: 100%;
     height: 400px; // Fixed height for single media
-    background-color: $gray-100;
+    background-color: var(--accent-secondary, $gray-100);
     overflow: hidden;
     
     // Ensure video fills container
@@ -111,7 +112,7 @@
   z-index: 2;
   
   &:hover {
-    background-color: $gray-900;
+    background-color: var(--accent-primary, $gray-900);
   }
   
   &.prev {
@@ -144,11 +145,11 @@
   outline: none;
   cursor: pointer;
   transition: all 0.3s ease;
-  background-color: $gray-300;
+  background-color: var(--accent-primary, $gray-300);
   flex-shrink: 0;
   
   &:hover {
-    background-color: $gray-400;
+    background-color: var(--text-secondary, $gray-400);
   }
   
   &.active {

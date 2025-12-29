@@ -8,13 +8,13 @@
   
   &:empty::before {
     content: attr(data-placeholder);
-    color: $gray-400;
+    color: var(--text-secondary, $gray-400);
     pointer-events: none;
   }
   
   // Placeholder styling when value matches placeholder
   &.placeholder {
-    color: $gray-400;
+    color: var(--text-secondary, $gray-400);
   }
   
   &:focus,

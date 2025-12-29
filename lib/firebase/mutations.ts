@@ -246,6 +246,8 @@ export async function saveUserSettings(
     roundedCorners?: string
     theme?: string
     visibility?: string
+    password?: string // Plaintext password for viewing/sharing
+    passwordHash?: string // Hashed password for verification
   }
 ): Promise<void> {
   if (!isFirebaseConfigured()) {
@@ -255,7 +257,15 @@ export async function saveUserSettings(
 
   try {
     const userRef = doc(db!, 'users', userId)
-    await setDoc(userRef, { settings }, { merge: true })
+    // Remove undefined values to avoid Firebase errors
+    const cleanSettings: Record<string, any> = {}
+    Object.keys(settings).forEach(key => {
+      const value = settings[key as keyof typeof settings]
+      if (value !== undefined) {
+        cleanSettings[key] = value
+      }
+    })
+    await setDoc(userRef, { settings: cleanSettings }, { merge: true })
   } catch (error) {
     console.error('Error saving user settings:', error)
     throw error

@@ -21,6 +21,7 @@
   min-height: 0;
   background-color: $gray-100;
   overflow: hidden;
+  border-radius: var(--border-radius, 0px);
   
   // Only show outline when image is present
   &.hasImage {
@@ -41,9 +42,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $gray-100;
-  outline: 1px dashed $gray-300;
-  color: $gray-400;
+  background-color: var(--accent-secondary, $gray-100);
+  outline: 1px dashed var(--accent-primary, $gray-300);
+  color: var(--text-secondary, $gray-400);
+  border-radius: var(--border-radius, 0px);
   
   &.placeholderClickable {
     cursor: pointer;
@@ -81,7 +83,7 @@
 
 .slideDescription {
   font-size: 10px;
-  color: $gray-700;
+  color: var(--text-secondary, $gray-700);
   margin: 0;
   line-height: 1.5;
 }

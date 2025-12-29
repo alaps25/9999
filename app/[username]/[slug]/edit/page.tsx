@@ -1497,8 +1497,8 @@ function EditPageContent({ params }: EditPageProps) {
                 size="md"
                 onClick={handleViewClick}
               >
-                <Eye size={16} />
-                VIEW
+                <Save size={16} />
+                SAVE
               </Button>
             </>
           )}

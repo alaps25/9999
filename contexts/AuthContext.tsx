@@ -18,6 +18,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
 import { getUserSettings } from '@/lib/firebase/queries'
 import { deleteAllUserData } from '@/lib/firebase/mutations'
+import { applyTheme } from '@/lib/utils/theme'
 
 interface UserData {
   uid: string
@@ -139,10 +140,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUserData(newUserData)
       }
 
-      // Load and apply user settings (accent color, etc.)
+      // Load and apply user settings (accent color, theme, rounded corners, etc.)
       const settings = await getUserSettings(firebaseUser.uid)
-      if (settings?.accentColor) {
-        document.documentElement.style.setProperty('--accent-primary', settings.accentColor)
+      const accentColor = settings?.accentColor || '#000000'
+      const theme = (settings?.theme || 'AUTO') as 'AUTO' | 'LIGHT' | 'DARK'
+      
+      // Apply theme (includes accent color and theme mode)
+      applyTheme(theme, accentColor)
+      
+      if (settings?.roundedCorners) {
+        // Cap rounded corners at 48px max
+        const numValue = parseInt(settings.roundedCorners, 10)
+        const cappedValue = isNaN(numValue) ? 0 : Math.min(Math.max(numValue, 0), 48)
+        document.documentElement.style.setProperty('--border-radius', `${cappedValue}px`)
       }
     } catch (error) {
       console.error('Error fetching/creating user data:', error)

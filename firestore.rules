@@ -11,9 +11,9 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
-    // Users collection - users can read/write their own user document
+    // Users collection - public read for username lookups, authenticated users can write their own document
     match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow read: if true; // Public read access for username lookups (needed for public portfolio viewing)
       allow write: if isAuthenticated() && request.auth.uid == userId;
     }
     

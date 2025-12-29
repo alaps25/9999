@@ -10,10 +10,12 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Typography } from '@/components/ui/Typography'
-import { Palette, Square, Sun, EyeOff, ArrowRight, Trash2 } from 'lucide-react'
+import { Palette, Square, Sun, EyeOff, Eye, ArrowRight, Trash2, Hash } from 'lucide-react'
 import { getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { saveUserSettings } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
+import { applyTheme, setupSystemThemeListener } from '@/lib/utils/theme'
+import { hashPassword } from '@/lib/utils/password'
 import styles from './page.module.scss'
 import type { MenuItem } from '@/lib/firebase/types'
 
@@ -50,19 +52,48 @@ function SettingsContent() {
         
         // Load settings from user profile
         if (settings) {
-          if (settings.accentColor) {
-            setAccentColor(settings.accentColor)
-            // Apply accent color globally
-            document.documentElement.style.setProperty('--accent-primary', settings.accentColor)
-          }
+          const loadedAccentColor = settings.accentColor || '#000000'
+          const loadedTheme = settings.theme || 'AUTO'
+          
+          setAccentColor(loadedAccentColor)
+          setTheme(loadedTheme)
+          
+          // Apply theme (includes accent color and theme mode)
+          applyTheme(loadedTheme as 'AUTO' | 'LIGHT' | 'DARK', loadedAccentColor)
+          
           if (settings.roundedCorners) {
-            setRoundedCorners(settings.roundedCorners)
+            // Cap at 48px when loading from settings
+            const numValue = parseInt(settings.roundedCorners, 10)
+            const cappedValue = isNaN(numValue) ? '0' : Math.min(Math.max(numValue, 0), 48).toString()
+            setRoundedCorners(cappedValue)
+            // Apply rounded corners globally
+            document.documentElement.style.setProperty('--border-radius', `${cappedValue}px`)
           }
-          if (settings.theme) {
-            setTheme(settings.theme)
-          }
-          if (settings.visibility) {
-            setVisibility(settings.visibility)
+          // Set visibility - if PRIVATE but no password, default to PUBLIC
+          const hasPassword = (settings.password && settings.password.trim() !== '') || 
+                             (settings.passwordHash && settings.passwordHash.trim() !== '')
+          
+          if (settings.visibility === 'PRIVATE' && !hasPassword) {
+            setVisibility('PUBLIC')
+            setHasExistingPassword(false)
+            setPassword('')
+          } else {
+            setVisibility(settings.visibility || 'PUBLIC')
+            
+            // Load existing password if it exists (for PRIVATE visibility)
+            if (settings.visibility === 'PRIVATE' && hasPassword) {
+              setHasExistingPassword(true)
+              // Load plaintext password if available, otherwise leave empty (user can't see hashed version)
+              if (settings.password && settings.password.trim() !== '') {
+                setPassword(settings.password)
+              } else {
+                // Old hashed password exists but no plaintext - user needs to set new password
+                setPassword('')
+              }
+            } else {
+              setHasExistingPassword(false)
+              setPassword('')
+            }
           }
         } else {
           // Initialize from CSS custom property if no saved settings
@@ -70,6 +101,8 @@ function SettingsContent() {
             .getPropertyValue('--accent-primary')
             .trim() || '#000000'
           setAccentColor(currentColor)
+          // Apply default theme
+          applyTheme('AUTO', currentColor)
         }
       } catch (error) {
         console.error('Error loading portfolio data:', error)
@@ -84,33 +117,195 @@ function SettingsContent() {
   const [accentColor, setAccentColor] = React.useState('#000000')
   const [roundedCorners, setRoundedCorners] = React.useState('0')
   const [theme, setTheme] = React.useState('AUTO')
-  const [visibility, setVisibility] = React.useState('PRIVATE')
+  const [visibility, setVisibility] = React.useState('PUBLIC')
   const [password, setPassword] = React.useState('')
+  const [showPassword, setShowPassword] = React.useState(false)
+  const [hasExistingPassword, setHasExistingPassword] = React.useState(false)
 
-  // Handle save - update accent color across the interface and save to Firebase
+  // Ref for the hidden color input
+  const colorInputRef = React.useRef<HTMLInputElement>(null)
+  
+  // Handle color swatch click to open color picker
+  const handleColorSwatchClick = () => {
+    colorInputRef.current?.click()
+  }
+  
+  // Handle color picker change
+  const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAccentColor(e.target.value)
+  }
+  
+  // Handle hex input change - ensure # is always present and non-removable
+  const handleHexInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value
+    
+    // Remove any existing # signs (user can't type #)
+    value = value.replace(/#/g, '')
+    
+    // Only allow valid hex characters
+    value = value.replace(/[^0-9A-Fa-f]/g, '')
+    
+    // Limit to 6 hex characters
+    value = value.slice(0, 6)
+    
+    // Always add # prefix (even if empty, ensures # is always present)
+    setAccentColor('#' + value)
+  }
+  
+  // Get hex value without # for display in input
+  const getHexValue = () => {
+    return accentColor.replace(/^#/, '') || '000000'
+  }
+  
+  // Handle rounded corners input change - cap at 48px max
+  const handleRoundedCornersChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value
+    
+    // Remove any non-numeric characters
+    value = value.replace(/[^0-9]/g, '')
+    
+    // Convert to number and cap at 48
+    const numValue = parseInt(value, 10)
+    if (!isNaN(numValue)) {
+      const cappedValue = Math.min(numValue, 48)
+      setRoundedCorners(cappedValue.toString())
+    } else if (value === '') {
+      // Allow empty input for better UX
+      setRoundedCorners('')
+    }
+  }
+  
+  // Get capped rounded corners value (for display and application)
+  const getCappedRoundedCorners = () => {
+    const numValue = parseInt(roundedCorners, 10)
+    if (isNaN(numValue)) return '0'
+    return Math.min(Math.max(numValue, 0), 48).toString()
+  }
+
+  // Handle save - update accent color, theme, rounded corners, and visibility/password across the interface and save to Firebase
   const handleSave = async () => {
     if (!user?.uid) {
       console.error('User not authenticated')
       return
     }
 
+    // Validate: if visibility is PRIVATE, password must be provided (unless one already exists)
+    if (visibility === 'PRIVATE' && !password.trim() && !hasExistingPassword) {
+      alert('Please enter a password when setting visibility to PRIVATE')
+      return
+    }
+
     try {
-      // Update CSS custom property for accent color (applies immediately)
-      document.documentElement.style.setProperty('--accent-primary', accentColor)
+      // Cap rounded corners at 48px before saving
+      const cappedRoundedCorners = getCappedRoundedCorners()
       
-      // Save settings to Firebase
-      await saveUserSettings(user.uid, {
+      // Apply theme (includes accent color and theme mode)
+      applyTheme(theme as 'AUTO' | 'LIGHT' | 'DARK', accentColor)
+      
+      // Update border radius
+      document.documentElement.style.setProperty('--border-radius', `${cappedRoundedCorners}px`)
+      
+      // Prepare settings object
+      const settingsToSave: {
+        accentColor: string
+        roundedCorners: string
+        theme: string
+        visibility: string
+        password?: string // Plaintext password for viewing/sharing
+        passwordHash?: string // Hashed password for verification
+      } = {
         accentColor,
-        roundedCorners,
+        roundedCorners: cappedRoundedCorners,
         theme,
         visibility,
-      })
+      }
+      
+      // Handle password - store in plaintext for viewing/sharing, also hash for verification
+      if (visibility === 'PRIVATE') {
+        if (password.trim()) {
+          // User entered a new password - store both plaintext (for viewing) and hash (for verification)
+          settingsToSave.password = password.trim()
+          settingsToSave.passwordHash = await hashPassword(password.trim())
+          setHasExistingPassword(true) // Update state after saving
+        } else if (hasExistingPassword) {
+          // User didn't enter password but one exists - keep existing password
+          const currentSettings = await getUserSettings(user.uid)
+          if (currentSettings?.password && currentSettings.password.trim() !== '') {
+            settingsToSave.password = currentSettings.password
+            // Also keep hash if it exists, otherwise generate new one
+            if (currentSettings?.passwordHash && currentSettings.passwordHash.trim() !== '') {
+              settingsToSave.passwordHash = currentSettings.passwordHash
+            } else {
+              settingsToSave.passwordHash = await hashPassword(currentSettings.password)
+            }
+          }
+        }
+        // If no password and no existing password, validation above will prevent saving
+      } else if (visibility === 'PUBLIC') {
+        // If visibility is PUBLIC, explicitly clear password
+        settingsToSave.password = ''
+        settingsToSave.passwordHash = ''
+        setHasExistingPassword(false) // Update state after saving
+      }
+      
+      // Save settings to Firebase
+      await saveUserSettings(user.uid, settingsToSave)
+      
+      // Reload settings to update hasExistingPassword state and keep password visible
+      const updatedSettings = await getUserSettings(user.uid)
+      if (updatedSettings?.visibility === 'PRIVATE') {
+        const hasPassword = (updatedSettings.password && updatedSettings.password.trim() !== '') || 
+                           (updatedSettings.passwordHash && updatedSettings.passwordHash.trim() !== '')
+        if (hasPassword) {
+          setHasExistingPassword(true)
+          // Keep password visible if it was saved
+          if (updatedSettings.password && updatedSettings.password.trim() !== '') {
+            setPassword(updatedSettings.password)
+          }
+        } else {
+          setHasExistingPassword(false)
+          setPassword('')
+        }
+      } else {
+        setHasExistingPassword(false)
+        setPassword('')
+      }
       
       console.log('Settings saved successfully')
     } catch (error) {
       console.error('Error saving settings:', error)
     }
   }
+  
+  // Apply theme in real-time when accent color or theme changes
+  React.useEffect(() => {
+    applyTheme(theme as 'AUTO' | 'LIGHT' | 'DARK', accentColor)
+    
+    // Set up system preference listener for AUTO mode
+    const cleanup = setupSystemThemeListener(
+      theme as 'AUTO' | 'LIGHT' | 'DARK',
+      accentColor
+    )
+    
+    return cleanup
+  }, [accentColor, theme])
+  
+  // Apply rounded corners in real-time when value changes (capped at 48px)
+  React.useEffect(() => {
+    const numValue = parseInt(roundedCorners, 10)
+    if (isNaN(numValue)) {
+      document.documentElement.style.setProperty('--border-radius', '0px')
+      return
+    }
+    
+    const cappedValue = Math.min(Math.max(numValue, 0), 48)
+    document.documentElement.style.setProperty('--border-radius', `${cappedValue}px`)
+    
+    // If the value was capped, update the state to reflect the capped value
+    if (numValue > 48) {
+      setRoundedCorners('48')
+    }
+  }, [roundedCorners])
 
   const themeOptions = [
     { label: 'AUTO', value: 'AUTO' },
@@ -223,11 +418,36 @@ function SettingsContent() {
                   <Palette size={16} />
                   ACCENT
                 </Button>
-                <div className={styles.colorSwatch} style={{ backgroundColor: accentColor }} />
+                <div 
+                  className={styles.colorSwatch} 
+                  style={{ backgroundColor: accentColor }}
+                  onClick={handleColorSwatchClick}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleColorSwatchClick()
+                    }
+                  }}
+                  aria-label="Click to open color picker"
+                />
+                {/* Hidden color input */}
+                <input
+                  ref={colorInputRef}
+                  type="color"
+                  value={accentColor}
+                  onChange={handleColorChange}
+                  className={styles.hiddenColorInput}
+                  aria-label="Color picker"
+                />
                 <Input
                   type="text"
-                  value={accentColor}
-                  onChange={(e) => setAccentColor(e.target.value)}
+                  value={getHexValue()}
+                  onChange={handleHexInputChange}
+                  maxLength={6}
+                  placeholder="000000"
+                  leftIcon={<Hash size={12} />}
                 />
               </div>
 
@@ -240,7 +460,8 @@ function SettingsContent() {
                 <Input
                   type="text"
                   value={roundedCorners}
-                  onChange={(e) => setRoundedCorners(e.target.value)}
+                  onChange={handleRoundedCornersChange}
+                  placeholder="0"
                 />
               </div>
 
@@ -272,12 +493,16 @@ function SettingsContent() {
                   variant="medium"
                   size="md"
                 />
-                <Input
-                  type="password"
-                  placeholder="PASSWORD"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                {visibility === 'PRIVATE' && (
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="PASSWORD"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    rightIcon={showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+                    onRightIconClick={() => setShowPassword(!showPassword)}
+                  />
+                )}
               </div>
             </div>
 

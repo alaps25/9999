@@ -1,0 +1,64 @@
+@import '../../../styles/variables';
+
+.unlockPage {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xl;
+  background-color: $accent-secondary;
+}
+
+.unlockCard {
+  width: 100%;
+  max-width: 500px;
+  outline: 1px solid $accent-primary;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  border-radius: var(--border-radius, 0px);
+  overflow: hidden;
+}
+
+.usernameSection {
+  padding: 24px;
+  border-bottom: 1px solid $accent-primary;
+}
+
+.username {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: $accent-primary;
+  margin: 0;
+}
+
+.unlockSection {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.lockedText {
+  font-size: 10px;
+  font-weight: 400;
+  color: $accent-primary;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+.passwordRow {
+  display: flex;
+  align-items: center;
+  gap: 1px; // No gap between input and button (they connect)
+}
+
+.errorMessage {
+  font-family: $font-family-mono;
+  font-size: 10px;
+  color: $accent-primary;
+  opacity: 0.7;
+  margin-top: -$spacing-md; // Reduce gap since error appears below input
+}
+

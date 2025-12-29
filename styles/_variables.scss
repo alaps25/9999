@@ -4,7 +4,9 @@
 // Colors
 // Use CSS custom properties for runtime theming support
 $accent-primary: var(--accent-primary, #000000);
-$accent-secondary: #FFFFFF;
+$accent-secondary: var(--accent-secondary, #FFFFFF);
+$text-primary: var(--text-primary, #000000);
+$text-secondary: var(--text-secondary, #666666);
 $accent-blue: #0066FF;
 
 $gray-50: #FAFAFA;

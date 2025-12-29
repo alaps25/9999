@@ -46,6 +46,7 @@
   z-index: 10000; // Very high z-index to ensure it's above all content
   background-color: $accent-secondary;
   outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
   min-width: 100%;
   max-height: 300px;
   overflow-y: auto;
@@ -86,7 +87,7 @@
   }
   
   &.menuItemSelected {
-    background-color: $gray-100;
+    background-color: var(--accent-secondary, $gray-100);
     color: $accent-primary;
     
     &:hover:not(:disabled) {

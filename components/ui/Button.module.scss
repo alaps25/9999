@@ -22,6 +22,7 @@
   outline: 1px solid $accent-primary;
   background-color: transparent;
   color: $accent-primary;
+  border-radius: var(--border-radius, 0px);
   
   // Reset browser defaults for <a> and <button> elements
   text-decoration: none;

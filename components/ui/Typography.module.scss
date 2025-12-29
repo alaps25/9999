@@ -34,13 +34,13 @@
   
   &.body {
     font-size: 10px;
-    color: $gray-700;
+    color: var(--text-secondary, $gray-700);
     line-height: 1.5;
   }
   
   &.caption {
     font-size: 0.875rem;
-    color: $gray-500;
+    color: var(--text-secondary, $gray-500);
     line-height: 1.5;
   }
   
