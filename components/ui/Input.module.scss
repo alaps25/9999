@@ -28,8 +28,8 @@
   outline: 1px solid $accent-primary;
   border: none;
   
-  // Remove border-radius
-  border-radius: 0;
+  // Use CSS custom property for border-radius
+  border-radius: var(--border-radius, 0px);
   
   // Placeholder styling
   // Use color-mix to work with CSS custom properties (mix with white background for 50% opacity effect)
@@ -76,6 +76,72 @@
   // Full width
   &.fullWidth {
     width: 100%;
+  }
+  
+  // When input has left icon, adjust padding
+  &.withLeftIcon {
+    padding-left: 40px; // Make room for icon
+  }
+  
+  // When input has right icon, adjust padding
+  &.withRightIcon {
+    padding-right: 40px; // Make room for icon
+  }
+}
+
+// Input wrapper for icon support
+.inputWrapper {
+  position: relative;
+  display: inline-block;
+  width: auto;
+}
+
+// Left icon styling
+.leftIcon {
+  position: absolute;
+  left: 20px; // Match input left padding
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  color: $accent-primary;
+  
+  // Icon size matches input font size
+  :global(svg) {
+    width: 12px;
+    height: 12px;
+  }
+}
+
+// Right icon styling
+.rightIcon {
+  position: absolute;
+  right: 20px; // Match input right padding
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1;
+  color: $accent-primary;
+  transition: opacity 0.2s ease;
+  
+  &:hover {
+    opacity: 0.7;
+  }
+  
+  &:active {
+    opacity: 0.5;
+  }
+  
+  // Icon size matches input font size
+  :global(svg) {
+    width: 12px;
+    height: 12px;
   }
 }
 

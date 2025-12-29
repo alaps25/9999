@@ -436,6 +436,8 @@ export async function getUserSettings(userId: string): Promise<{
   roundedCorners?: string
   theme?: string
   visibility?: string
+  passwordHash?: string
+  password?: string // Plaintext password for viewing/sharing
 } | null> {
   if (!isFirebaseConfigured() || !db) {
     console.log('Firebase not configured, returning null settings')

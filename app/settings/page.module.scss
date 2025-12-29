@@ -38,6 +38,7 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-lg;
+  border-radius: var(--border-radius, 0px);
 }
 
 .settingsTitle {
@@ -61,8 +62,16 @@
   // Fix double outline when Button and Input are adjacent
   // Add 1px margin to create gap (matching codebase pattern in AnimatedInsertButton)
   // Dropdown doesn't need this because it's wrapped in a <div> which provides natural separation
-  :global(button) + :global(input),
-  :global(div[class*="colorSwatch"]) + :global(input) {
+  :global(button) + :global(input):not(.hiddenColorInput),
+  :global(button) + :global(div[class*="inputWrapper"]),
+  :global(div[class*="colorSwatch"]) + :global(input):not(.hiddenColorInput),
+  :global(div[class*="colorSwatch"]) + :global(div[class*="inputWrapper"]) {
+    margin-left: 1px;
+  }
+  
+  // Ensure text input wrapper after hidden color input gets proper spacing
+  .hiddenColorInput + :global(div[class*="inputWrapper"]),
+  .hiddenColorInput + :global(input) {
     margin-left: 1px;
   }
   
@@ -89,6 +98,25 @@
   height: 32px;
   outline: 1px solid $accent-primary;
   background-color: #000000;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  border-radius: var(--border-radius, 0px);
+  
+  &:hover {
+    opacity: 0.8;
+  }
+  
+  &:active {
+    opacity: 0.6;
+  }
+}
+
+.hiddenColorInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .accountEmail {

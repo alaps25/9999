@@ -7,7 +7,7 @@
 }
 
 .video {
-  background-color: $gray-100;
+  background-color: var(--accent-secondary, $gray-100);
   
   // Custom video controls styling
   &::-webkit-media-controls-panel {

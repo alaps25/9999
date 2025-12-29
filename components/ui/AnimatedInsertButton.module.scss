@@ -6,6 +6,7 @@
   //overflow: visible; // Allow dropdown menu to overflow container
   position: relative; // Create stacking context for z-index
   outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
   margin-top: 1px; // Prevents outline overlap creating double-thick borders with card above
   margin-bottom: 1px; // Prevents outline overlap creating double-thick borders with card below
   display: flex;

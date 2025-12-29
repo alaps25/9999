@@ -8,6 +8,7 @@
   outline: 1px solid $accent-primary;
   background-color: $accent-secondary;
   font-family: $font-family-mono;
+  border-radius: var(--border-radius, 0px);
 
   &.noPadding {
     padding: 0;

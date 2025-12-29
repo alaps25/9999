@@ -17,7 +17,7 @@
     
     // Ensure placeholder styling is applied (same as title/description)
     &.placeholder {
-      color: $gray-400;
+      color: var(--text-secondary, $gray-400);
     }
   }
   
@@ -29,6 +29,7 @@
     z-index: 1000;
     background-color: $accent-secondary;
     outline: 1px solid $accent-primary;
+    border-radius: var(--border-radius, 0px);
     margin-top: 2px;
     max-height: 200px;
     overflow-y: auto;

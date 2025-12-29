@@ -68,13 +68,13 @@ export const AnimatedInsertButton: React.FC<AnimatedInsertButtonProps> = ({
           <Dropdown
             options={wrappedOptions}
             placeholder={placeholder}
-            variant="low"
+            variant="medium"
             size="md"
             alwaysShowPlaceholder={true}
           />
           {onDelete && (
             <Button
-              variant="low"
+              variant="medium"
               size="md"
               onClick={(e) => {
                 e.stopPropagation()
