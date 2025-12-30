@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Typography } from '@/components/ui/Typography'
-import { Palette, Square, Sun, EyeOff, Eye, ArrowRight, Trash2, Hash } from 'lucide-react'
+import { Palette, Square, Sun, EyeOff, Eye, ArrowRight, Trash2, Hash, User, Check, AlertCircle } from 'lucide-react'
 import { getMenuItems, getUserSettings } from '@/lib/firebase/queries'
-import { saveUserSettings } from '@/lib/firebase/mutations'
+import { saveUserSettings, updateUsername } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import { applyTheme, setupSystemThemeListener } from '@/lib/utils/theme'
 import { hashPassword } from '@/lib/utils/password'
+import { validateUsername, isUsernameAvailable } from '@/lib/utils/user'
 import styles from './page.module.scss'
 import type { MenuItem } from '@/lib/firebase/types'
 
@@ -49,6 +50,11 @@ function SettingsContent() {
           getUserSettings(user.uid)
         ])
         setMenuItems(items)
+        
+        // Load current username from userData
+        if (userData?.username) {
+          setUsername(userData.username)
+        }
         
         // Load settings from user profile
         if (settings) {
@@ -121,6 +127,10 @@ function SettingsContent() {
   const [password, setPassword] = React.useState('')
   const [showPassword, setShowPassword] = React.useState(false)
   const [hasExistingPassword, setHasExistingPassword] = React.useState(false)
+  const [username, setUsername] = React.useState('')
+  const [usernameAvailability, setUsernameAvailability] = React.useState<'checking' | 'available' | 'unavailable' | null>(null)
+  const [usernameError, setUsernameError] = React.useState<string | null>(null)
+  const [saveError, setSaveError] = React.useState<string | null>(null)
 
   // Ref for the hidden color input
   const colorInputRef = React.useRef<HTMLInputElement>(null)
@@ -182,20 +192,119 @@ function SettingsContent() {
     return Math.min(Math.max(numValue, 0), 48).toString()
   }
 
-  // Handle save - update accent color, theme, rounded corners, and visibility/password across the interface and save to Firebase
+  // Debounced username availability check
+  const usernameCheckTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  
+  React.useEffect(() => {
+    // Clear previous timeout
+    if (usernameCheckTimeoutRef.current) {
+      clearTimeout(usernameCheckTimeoutRef.current)
+    }
+    
+    const trimmed = username.trim()
+    
+    // Don't check if username is empty or same as current
+    if (!trimmed || trimmed === userData?.username) {
+      setUsernameAvailability(null)
+      setUsernameError(null)
+      return
+    }
+    
+    // Only check format immediately (for instant feedback on invalid characters)
+    // But don't check availability until minimum length (3 chars) is met
+    const validation = validateUsername(trimmed, user?.email)
+    if (!validation.isValid) {
+      // Only show format errors, don't check availability yet
+      setUsernameAvailability(null)
+      setUsernameError(validation.error || null)
+      return
+    }
+    
+    // Clear format errors if format is valid
+    setUsernameError(null)
+    
+    // Only check availability if username meets minimum length requirement (3 chars)
+    if (trimmed.length < 3) {
+      setUsernameAvailability(null)
+      return
+    }
+    
+    // Set checking state only when we're about to check (after debounce)
+    // Debounce the availability check (800ms) - longer delay for better UX
+    usernameCheckTimeoutRef.current = setTimeout(async () => {
+      if (!user?.uid) return
+      
+      // Set checking state right before the actual check
+      setUsernameAvailability('checking')
+      
+      try {
+        const available = await isUsernameAvailable(trimmed, user.uid)
+        setUsernameAvailability(available ? 'available' : 'unavailable')
+        if (!available) {
+          setUsernameError('Username is already taken')
+        } else {
+          setUsernameError(null)
+        }
+      } catch (error) {
+        console.error('Error checking username availability:', error)
+        setUsernameAvailability('unavailable')
+        setUsernameError('Error checking username availability')
+      }
+    }, 800)
+    
+    return () => {
+      if (usernameCheckTimeoutRef.current) {
+        clearTimeout(usernameCheckTimeoutRef.current)
+      }
+    }
+  }, [username, user?.uid, user?.email, userData?.username])
+
+  // Handle username input change - force lowercase
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase()
+    setUsername(value)
+    setSaveError(null) // Clear save error when user types
+    // Focus is preserved automatically by React - no need to manually manage it
+  }
+
+  // Handle save - update accent color, theme, rounded corners, visibility/password, and username
   const handleSave = async () => {
     if (!user?.uid) {
       console.error('User not authenticated')
       return
     }
 
+    // Clear previous save errors
+    setSaveError(null)
+
     // Validate: if visibility is PRIVATE, password must be provided (unless one already exists)
     if (visibility === 'PRIVATE' && !password.trim() && !hasExistingPassword) {
-      alert('Please enter a password when setting visibility to PRIVATE')
+      setSaveError('Please enter a password when setting visibility to PRIVATE')
       return
     }
 
+    // Validate username if changed
+    if (username.trim() && username !== userData?.username) {
+      const validation = validateUsername(username, user?.email)
+      if (!validation.isValid) {
+        setSaveError(validation.error || 'Invalid username')
+        return
+      }
+      
+      // Check availability one more time before saving
+      if (usernameAvailability !== 'available') {
+        setSaveError('Please choose an available username')
+        return
+      }
+    }
+
     try {
+      // Update username if changed
+      if (username.trim() && username !== userData?.username) {
+        await updateUsername(user.uid, username.trim(), user?.email)
+        // Refresh userData in AuthContext
+        // We'll need to add a refresh function to AuthContext
+      }
       // Cap rounded corners at 48px before saving
       const cappedRoundedCorners = getCappedRoundedCorners()
       
@@ -272,8 +381,15 @@ function SettingsContent() {
       }
       
       console.log('Settings saved successfully')
-    } catch (error) {
+      
+      // If username was changed, reload page to update AuthContext and reflect new username everywhere
+      if (username.trim() && username !== userData?.username) {
+        window.location.reload()
+        return // Exit early since we're reloading
+      }
+    } catch (error: any) {
       console.error('Error saving settings:', error)
+      setSaveError(error.message || 'Failed to save settings. Please try again.')
     }
   }
   
@@ -504,7 +620,45 @@ function SettingsContent() {
                   />
                 )}
               </div>
+
+              {/* Username Setting */}
+              <div className={styles.settingItem}>
+                <Button variant="medium" size="md">
+                  <User size={16} />
+                  USERNAME
+                </Button>
+                <Input
+                  type="text"
+                  placeholder="username"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  maxLength={20}
+                  rightIcon={
+                    username.trim() && username.trim().length >= 3 && username !== userData?.username ? (
+                      usernameAvailability === 'checking' ? null : usernameAvailability === 'available' ? (
+                        <Check size={12} style={{ color: 'var(--accent-primary)' }} />
+                      ) : usernameAvailability === 'unavailable' ? (
+                        <AlertCircle size={12} style={{ color: '#ff4444' }} />
+                      ) : null
+                    ) : null
+                  }
+                />
+              </div>
             </div>
+
+            {saveError && (
+              <div style={{ 
+                padding: '0.75rem', 
+                backgroundColor: '#fee', 
+                border: '1px solid #fcc',
+                borderRadius: '4px',
+                marginBottom: '1rem',
+                color: '#c33',
+                fontSize: '0.875rem'
+              }}>
+                {saveError}
+              </div>
+            )}
 
             <Button variant="high" size="md" style={{ alignSelf: 'flex-start' }} onClick={handleSave}>
               SAVE
