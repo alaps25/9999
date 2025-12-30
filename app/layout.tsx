@@ -10,7 +10,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Wires Portfolio',
+  title: 'Wires',
   description: 'A modern portfolio website built with Next.js and Firebase',
 }
 
