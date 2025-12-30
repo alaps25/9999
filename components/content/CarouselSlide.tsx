@@ -36,7 +36,10 @@ export const CarouselSlide: React.FC<CarouselSlideProps> = ({
 }) => {
   const [mounted, setMounted] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [isPasteFocused, setIsPasteFocused] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const placeholderRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -55,16 +58,58 @@ export const CarouselSlide: React.FC<CarouselSlideProps> = ({
     )
   }
 
-  // Handle placeholder click
-  const handlePlaceholderClick = () => {
+  const handleBrowseClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     if (isEditable && fileInputRef.current) {
       fileInputRef.current.click()
+    }
+  }
+
+  const handlePlaceholderClick = (e: React.MouseEvent) => {
+    // Only focus if clicking the placeholder area itself, not the button
+    if (isEditable && e.target === e.currentTarget) {
+      setIsPasteFocused(true)
+      placeholderRef.current?.focus()
+    }
+  }
+
+  const handlePlaceholderBlur = () => {
+    setIsPasteFocused(false)
+  }
+
+  // Handle paste event
+  const handlePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (!isEditable || !onImageChange || !isPasteFocused) return
+    
+    e.preventDefault()
+    const items = Array.from(e.clipboardData.items)
+    const imageItems = items.filter(item => item.type.startsWith('image/'))
+    
+    if (imageItems.length > 0) {
+      const file = imageItems[0].getAsFile()
+      if (file) {
+        processFiles([file])
+        setIsPasteFocused(false)
+      }
+    }
+  }
+
+  // Handle Escape key to clear focus
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape' && isPasteFocused) {
+      setIsPasteFocused(false)
+      placeholderRef.current?.blur()
     }
   }
 
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
+    processFiles(files)
+  }
+
+  // Process files (used by both file input and drag-drop)
+  const processFiles = (files: File[]) => {
     if (files.length > 0 && onImageChange) {
       // Validate file types (images, videos, GIFs)
       const validTypes = [
@@ -81,7 +126,8 @@ export const CarouselSlide: React.FC<CarouselSlideProps> = ({
       const validFiles = files.filter(file => validTypes.includes(file.type))
       
       if (validFiles.length > 0) {
-        onImageChange(validFiles)
+        // CarouselSlide only accepts single file, take first
+        onImageChange([validFiles[0]])
       } else {
         alert('Please select valid image or video files')
       }
@@ -90,6 +136,45 @@ export const CarouselSlide: React.FC<CarouselSlideProps> = ({
     // Reset input so same files can be selected again
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
+    }
+  }
+
+  // Drag and drop handlers
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isEditable) {
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (isEditable) {
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set drag over to false if we're leaving the drop zone
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragOver(false)
+    
+    if (!isEditable || !onImageChange) return
+    
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      processFiles(files)
     }
   }
 
@@ -153,10 +238,38 @@ export const CarouselSlide: React.FC<CarouselSlideProps> = ({
               style={{ display: 'none' }}
             />
             <div 
-              className={cn(styles.placeholder, isEditable && styles.placeholderClickable)}
+              ref={placeholderRef}
+              tabIndex={isEditable ? 0 : -1}
+              className={cn(
+                styles.placeholder, 
+                isEditable && styles.placeholderClickable,
+                isDragOver && styles.dragOver,
+                isPasteFocused && styles.pasteFocused
+              )}
               onClick={handlePlaceholderClick}
+              onBlur={handlePlaceholderBlur}
+              onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
+              onDragOver={handleDragOver}
+              onDragEnter={handleDragEnter}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
             >
-              <span className={styles.placeholderText}>Add media</span>
+              <div className={styles.placeholderContent}>
+                <span className={styles.placeholderText}>
+                  {isDragOver ? 'Drop file here' : isPasteFocused ? 'Ready for paste (Cmd+V)' : 'Drop/Paste media'}
+                </span>
+                {isEditable && (
+                  <Button
+                    variant="medium"
+                    size="md"
+                    onClick={handleBrowseClick}
+                    className={styles.browseButton}
+                  >
+                    BROWSE
+                  </Button>
+                )}
+              </div>
             </div>
           </>
         )}
