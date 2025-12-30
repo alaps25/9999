@@ -195,10 +195,36 @@
     color: var(--text-secondary, $gray-400);
     box-sizing: border-box;
     border-radius: var(--border-radius, 0px);
+    transition: all 0.2s ease;
     
     &.placeholderClickable {
       cursor: pointer;
     }
+    
+    &.dragOver {
+      outline: 2px dashed $accent-primary;
+      outline-offset: -2px;
+      background-color: rgba($accent-primary, 0.05);
+      color: $accent-primary;
+    }
+    
+    &.pasteFocused {
+      background-color: rgba($accent-primary, 0.12);
+      outline: 1px dashed $accent-primary;
+    }
+    
+    &:focus {
+      outline: 1px dashed $accent-primary;
+      background-color: rgba($accent-primary, 0.12);
+    }
+  }
+  
+  .placeholderContent {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
   }
   
   .placeholderText {
@@ -206,6 +232,10 @@
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.1em;
+  }
+  
+  .browseButton {
+    margin-top: 0;
   }
 }
 
