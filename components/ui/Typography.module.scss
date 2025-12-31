@@ -34,8 +34,10 @@
   
   &.body {
     font-size: 10px;
-    color: var(--text-secondary, $gray-700);
     line-height: 1.5;
+    // Always use text-secondary for body variant, never inherit accent color
+    // Using explicit color declaration prevents inheritance from parent elements
+    color: var(--text-secondary, $gray-700);
   }
   
   &.caption {

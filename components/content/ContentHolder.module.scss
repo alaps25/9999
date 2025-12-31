@@ -21,5 +21,7 @@
 }
 
 .description {
-  color: var(--text-secondary, $gray-700); // Use standard text color, not accent color
+  // Use semantic color token - theme.ts handles light/dark mode values
+  // Typography.body already uses --text-secondary by default
+  color: var(--text-secondary, $gray-700);
 }
