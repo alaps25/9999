@@ -44,10 +44,12 @@
   
   // Specific gap between title and description (4px instead of default 24px gap)
   .description {
-    
-    word-wrap: break-word; // Allow long words to wrap
-    overflow-wrap: break-word; // Modern property for word wrapping
-    max-width: 100%; // Ensure description doesn't exceed container
+    // Use semantic color token - theme.ts handles light/dark mode values
+    // Typography.body and EditableText.body already use --text-secondary by default
+    color: var(--text-secondary, $gray-700);
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
   }
   
   
@@ -57,18 +59,21 @@
     font-family: $font-family-mono !important;
     margin-top: 0; // No negative margin for bio
     white-space: pre-line;
+    color: $accent-primary; // Big text uses accent color
     
     // Override Typography and EditableText variant styles
     :global(.typography),
     :global(.editableText) {
       font-size: 20px !important;
       font-family: $font-family-mono !important;
+      color: $accent-primary; // Ensure accent color for big text
     }
     
     // Apply font to all children
     * {
       font-family: $font-family-mono !important;
       font-size: 20px !important;
+      color: $accent-primary; // Ensure accent color for all children
     }
   }
 }

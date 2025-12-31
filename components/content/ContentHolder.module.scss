@@ -1,0 +1,27 @@
+@import '../../styles/variables';
+
+.contentHolder {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: $font-family-sans;
+  flex-wrap: wrap;
+}
+
+.separator {
+  color: $accent-primary;
+}
+
+.description {
+  // Use semantic color token - theme.ts handles light/dark mode values
+  // Typography.body already uses --text-secondary by default
+  color: var(--text-secondary, $gray-700);
+}

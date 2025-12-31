@@ -156,12 +156,12 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
                 value={displayDescription}
                 onChange={(value) => onFieldChange?.('description', value)}
                 variant="body"
-                className={cn(styles.description, "text-accent-gray-600")}
+                className={styles.description}
                 as="div"
                 placeholder="Description"
               />
             ) : (
-              <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
+              <Typography variant="body" className={styles.description}>
                 {displayDescription}
               </Typography>
             )

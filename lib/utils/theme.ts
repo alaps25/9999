@@ -286,13 +286,28 @@ export function calculateThemeColors(
   const textPrimary = calculateAccessibleTextColor(accentColor, backgroundColor)
   
   // Calculate secondary text color (lighter/darker variant)
+  // Best practice: Use fixed semantic colors for secondary text to ensure
+  // consistent contrast and readability across themes
+  // This follows WCAG guidelines and design system best practices
+  if (actualTheme === 'dark') {
+    // Dark mode: Use desaturated light gray (not pure white) for better readability
+    // #CCCCCC provides good contrast against dark backgrounds without eye strain
+    const textSecondary = '#CCCCCC'
+    
+    return {
+      background: backgroundColor,
+      textPrimary,
+      textSecondary,
+      actualTheme,
+    }
+  }
+  
+  // Light mode: calculate from textPrimary
   const textPrimaryRgb = hexToRgb(textPrimary)
   if (textPrimaryRgb) {
     const hsl = rgbToHsl(textPrimaryRgb.r, textPrimaryRgb.g, textPrimaryRgb.b)
     // Adjust lightness for secondary text (less contrast)
-    const secondaryL = actualTheme === 'light' 
-      ? Math.max(0, hsl.l - 20) // Darker for light mode
-      : Math.min(100, hsl.l + 20) // Lighter for dark mode
+    const secondaryL = Math.max(0, hsl.l - 20) // Darker for light mode
     const secondaryRgb = hslToRgb(hsl.h, hsl.s, secondaryL)
     const textSecondary = rgbToHex(secondaryRgb.r, secondaryRgb.g, secondaryRgb.b)
     

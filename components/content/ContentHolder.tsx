@@ -74,7 +74,7 @@ export const ContentHolder: React.FC<ContentHolderProps> = ({
 
       {/* Description - Always show above carousel */}
       {contentConfig.showDescription && displayDescription && (
-        <Typography variant="body" className={cn(styles.description, "text-accent-gray-600")}>
+        <Typography variant="body" className={styles.description}>
           {displayDescription}
         </Typography>
       )}
