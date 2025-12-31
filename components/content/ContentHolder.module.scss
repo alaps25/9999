@@ -1,0 +1,25 @@
+@import '../../styles/variables';
+
+.contentHolder {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-md;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 10px;
+  font-weight: 500;
+  font-family: $font-family-sans;
+  flex-wrap: wrap;
+}
+
+.separator {
+  color: $accent-primary;
+}
+
+.description {
+  color: var(--text-secondary, $gray-700); // Use standard text color, not accent color
+}
