@@ -28,19 +28,26 @@ interface PageProps {
 
 function PageContent({ username, slug }: { username: string; slug: string }) {
   const router = useRouter()
-  const { user, userData } = useAuth()
+  const { user, userData, loading: authLoading } = useAuth()
   const [portfolioData, setPortfolioData] = React.useState<PortfolioData | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [currentPageId, setCurrentPageId] = React.useState<string | null>(null)
 
   React.useEffect(() => {
+    // Wait for auth to finish loading before running page logic
+    // This prevents race condition where we check user state before auth is ready
+    if (authLoading) {
+      return
+    }
+
     async function loadData() {
       try {
         // Get userId - either from current user or from username lookup
         let targetUserId: string | null = null
         
+        // Check if user is viewing their own page (only after auth has loaded)
         if (user && userData && userData.username === username) {
-          // User is viewing their own page
+          // User is viewing their own page - no need to check session
           targetUserId = user.uid
         } else {
           // User is viewing someone else's page - need to check visibility
@@ -55,7 +62,8 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
           // Check if page is private and apply owner's settings
           const settings = await getUserSettings(targetUserId)
           if (settings?.visibility === 'PRIVATE') {
-            // Check if user has valid session
+            // Only check session if user is NOT viewing their own page
+            // If user is logged in and viewing their own page, they don't need a session
             if (!hasValidSession(targetUserId)) {
               // Redirect to unlock page
               router.push(`/${username}/unlock?redirect=${encodeURIComponent(`/${username}/${slug}`)}`)
@@ -111,7 +119,7 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
       }
     }
     loadData()
-  }, [slug, username, user, userData, router])
+  }, [slug, username, user, userData, router, authLoading])
 
   const handleEditClick = () => {
     router.push(`/${username}/${slug}/edit`)
@@ -162,7 +170,10 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
     await shareUrl(portfolioUrl, `Check out ${username}'s portfolio`)
   }
 
-  if (loading || !portfolioData) {
+  // Wait for auth to finish loading before rendering content
+  // This ensures theme is applied before navigation items are rendered
+  // This fixes the issue where navigation items show darker text on first load
+  if (authLoading || loading || !portfolioData) {
     return <div>Loading...</div>
   }
 
