@@ -285,10 +285,11 @@ export function calculateThemeColors(
   // Calculate accessible text color from accent
   const textPrimary = calculateAccessibleTextColor(accentColor, backgroundColor)
   
-  // Calculate secondary text color (lighter/darker variant)
+  // Calculate secondary text color
   // Best practice: Use fixed semantic colors for secondary text to ensure
   // consistent contrast and readability across themes
   // This follows WCAG guidelines and design system best practices
+  // Description text should always use a fixed gray color, independent of accent color
   if (actualTheme === 'dark') {
     // Dark mode: Use desaturated light gray (not pure white) for better readability
     // #CCCCCC provides good contrast against dark backgrounds without eye strain
@@ -302,28 +303,15 @@ export function calculateThemeColors(
     }
   }
   
-  // Light mode: calculate from textPrimary
-  const textPrimaryRgb = hexToRgb(textPrimary)
-  if (textPrimaryRgb) {
-    const hsl = rgbToHsl(textPrimaryRgb.r, textPrimaryRgb.g, textPrimaryRgb.b)
-    // Adjust lightness for secondary text (less contrast)
-    const secondaryL = Math.max(0, hsl.l - 20) // Darker for light mode
-    const secondaryRgb = hslToRgb(hsl.h, hsl.s, secondaryL)
-    const textSecondary = rgbToHex(secondaryRgb.r, secondaryRgb.g, secondaryRgb.b)
-    
-    return {
-      background: backgroundColor,
-      textPrimary,
-      textSecondary,
-      actualTheme,
-    }
-  }
+  // Light mode: Use fixed gray color for secondary text
+  // This ensures description text always uses consistent gray (#666666) regardless of accent color
+  // This was fixed to prevent description text from changing color based on accent color
+  const textSecondary = '#666666'
   
-  // Fallback
   return {
     background: backgroundColor,
-    textPrimary: actualTheme === 'light' ? '#000000' : '#FFFFFF',
-    textSecondary: actualTheme === 'light' ? '#666666' : '#CCCCCC',
+    textPrimary,
+    textSecondary,
     actualTheme,
   }
 }
