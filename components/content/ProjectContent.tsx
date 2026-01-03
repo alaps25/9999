@@ -83,9 +83,9 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   const layout = contentConfig.layout || 'vertical'
   const isHorizontal = layout === 'horizontal'
   
-  // Detect "Big text" variant: no title, no tags, only description, no media
-  const isBigText = !contentConfig.showTitle && 
-                    contentConfig.showDescription && 
+  // Detect "Big text" variant: title only, no description, no tags, no media
+  const isBigText = contentConfig.showTitle && 
+                    !contentConfig.showDescription && 
                     !contentConfig.showSingleImage && 
                     !contentConfig.showSlides && 
                     !contentConfig.showPhotoCarousel &&
@@ -122,12 +122,12 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               value={displayTitle}
               onChange={(value) => onFieldChange?.('title', value)}
               variant="h3"
-              className="font-bold"
+              className={cn("font-bold", isBigText && styles.bigTextTitle)}
               as="div"
               placeholder="Title"
             />
           ) : (
-          <Typography variant="h3" className="font-bold">
+          <Typography variant="h3" className={cn("font-bold", isBigText && styles.bigTextTitle)}>
             {displayTitle}
           </Typography>
           )
@@ -135,7 +135,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
 
         {/* Description */}
         {contentConfig.showDescription && displayDescription && (
-          variant === 'bio' || isBigText ? (
+          variant === 'bio' ? (
             isEditable ? (
               <EditableText
                 value={displayDescription}
@@ -143,7 +143,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
                 variant="body"
                 className={cn(styles.description, styles.bioDescription)}
                 as="div"
-                placeholder={isBigText ? "Big text here..." : "Description"}
+                placeholder="Description"
               />
             ) : (
               <Typography variant="body" className={cn(styles.description, styles.bioDescription)}>

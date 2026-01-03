@@ -492,12 +492,12 @@ function EditPageContent({ params }: EditPageProps) {
       case 'big-text':
         return {
           ...baseProject,
-          title: '',
-          description: 'Big text here...',
+          title: 'Title',
+          description: '',
           tags: [],
           content: {
-            showTitle: false,
-            showDescription: true,
+            showTitle: true,
+            showDescription: false,
             showTextOnly: false,
             showPhotoCarousel: false,
             showSlides: false,
