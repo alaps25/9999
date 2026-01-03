@@ -533,12 +533,63 @@ function EditPageContent({ params }: EditPageProps) {
     insertBeforeIndex: number,
     cardType: 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text' = 'v-card'
   ) => {
-    if (!user) return
+    if (!user || !portfolioData) return
     const newProjectData = createProjectDataByType(cardType)
     
+    // Calculate order value based on insertion position
+    // Get orders of adjacent projects to calculate a value that sorts correctly
+    let calculatedOrder = insertBeforeIndex
+    const sections = portfolioData.sections
+    
+    if (insertBeforeIndex === 0) {
+      // Inserting at the beginning: use order less than first project's order
+      if (sections.length > 0 && sections[0].type === 'project' && sections[0].project?.order !== undefined) {
+        const firstOrder = sections[0].project.order || 0
+        calculatedOrder = firstOrder > 0 ? firstOrder - 1 : -1
+      } else {
+        calculatedOrder = 0
+      }
+    } else if (insertBeforeIndex < sections.length) {
+      // Inserting between projects: use average of previous and next project's orders
+      const prevSection = sections[insertBeforeIndex - 1]
+      const nextSection = sections[insertBeforeIndex]
+      const prevOrder = prevSection.type === 'project' && prevSection.project?.order !== undefined 
+        ? (prevSection.project.order || 0) 
+        : insertBeforeIndex - 1
+      const nextOrder = nextSection.type === 'project' && nextSection.project?.order !== undefined
+        ? (nextSection.project.order || 0)
+        : insertBeforeIndex
+      // Use midpoint, ensuring it's between prevOrder and nextOrder
+      if (prevOrder === nextOrder) {
+        calculatedOrder = prevOrder + 1
+      } else if (nextOrder - prevOrder === 1) {
+        // If orders are consecutive integers, we can't insert an integer between them
+        // Use prevOrder + 1 (equals nextOrder), Firestore will sort by document ID as tiebreaker
+        // This is acceptable - the reorder feature can normalize orders later if needed
+        calculatedOrder = prevOrder + 1
+      } else {
+        calculatedOrder = Math.floor((prevOrder + nextOrder) / 2)
+        // Ensure calculatedOrder is strictly between prevOrder and nextOrder
+        if (calculatedOrder <= prevOrder) {
+          calculatedOrder = prevOrder + 1
+        } else if (calculatedOrder >= nextOrder) {
+          calculatedOrder = nextOrder - 1
+        }
+      }
+    } else {
+      // Inserting at the end: use max order + 1
+      const maxOrder = sections.reduce((max, section) => {
+        if (section.type === 'project' && section.project?.order !== undefined) {
+          return Math.max(max, section.project.order || 0)
+        }
+        return max
+      }, -1)
+      calculatedOrder = maxOrder + 1
+    }
+    
     try {
-      const projectId = await addProject(newProjectData, user.uid)
-      const newProject: Project = { ...newProjectData, id: projectId }
+      const projectId = await addProject(newProjectData, user.uid, calculatedOrder)
+      const newProject: Project = { ...newProjectData, id: projectId, order: calculatedOrder }
       
       setPortfolioData((currentData) => {
         if (!currentData) return currentData
@@ -557,7 +608,7 @@ function EditPageContent({ params }: EditPageProps) {
       })
     } catch (error) {
       console.error('Failed to insert project above:', error)
-      const tempProject: Project = { ...newProjectData, id: `project-${Date.now()}` }
+      const tempProject: Project = { ...newProjectData, id: `project-${Date.now()}`, order: calculatedOrder }
       setPortfolioData((currentData) => {
         if (!currentData) return currentData
         
@@ -581,18 +632,68 @@ function EditPageContent({ params }: EditPageProps) {
     insertAfterIndex: number,
     cardType: 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text' = 'v-card'
   ) => {
-    if (!user) return
+    if (!user || !portfolioData) return
     const newProjectData = createProjectDataByType(cardType)
     
+    // Calculate order value based on insertion position
+    const insertIndex = insertAfterIndex === -1 ? 0 : insertAfterIndex + 1
+    const sections = portfolioData.sections
+    
+    let calculatedOrder = insertIndex
+    if (insertAfterIndex === -1) {
+      // Inserting at the beginning: use order less than first project's order
+      if (sections.length > 0 && sections[0].type === 'project' && sections[0].project?.order !== undefined) {
+        const firstOrder = sections[0].project.order || 0
+        calculatedOrder = firstOrder > 0 ? firstOrder - 1 : -1
+      } else {
+        calculatedOrder = 0
+      }
+    } else if (insertAfterIndex < sections.length - 1) {
+      // Inserting between projects: use average of current and next project's orders
+      const currentSection = sections[insertAfterIndex]
+      const nextSection = sections[insertAfterIndex + 1]
+      const currentOrder = currentSection.type === 'project' && currentSection.project?.order !== undefined
+        ? (currentSection.project.order || 0)
+        : insertAfterIndex
+      const nextOrder = nextSection.type === 'project' && nextSection.project?.order !== undefined
+        ? (nextSection.project.order || 0)
+        : insertAfterIndex + 1
+      // Use midpoint, ensuring it's between currentOrder and nextOrder
+      if (currentOrder === nextOrder) {
+        calculatedOrder = currentOrder + 1
+      } else if (nextOrder - currentOrder === 1) {
+        // If orders are consecutive integers, we can't insert an integer between them
+        // Use currentOrder + 1 (equals nextOrder), Firestore will sort by document ID as tiebreaker
+        // This is acceptable - the reorder feature can normalize orders later if needed
+        calculatedOrder = currentOrder + 1
+      } else {
+        calculatedOrder = Math.floor((currentOrder + nextOrder) / 2)
+        // Ensure calculatedOrder is strictly between currentOrder and nextOrder
+        if (calculatedOrder <= currentOrder) {
+          calculatedOrder = currentOrder + 1
+        } else if (calculatedOrder >= nextOrder) {
+          calculatedOrder = nextOrder - 1
+        }
+      }
+    } else {
+      // Inserting at the end: use max order + 1
+      const maxOrder = sections.reduce((max, section) => {
+        if (section.type === 'project' && section.project?.order !== undefined) {
+          return Math.max(max, section.project.order || 0)
+        }
+        return max
+      }, -1)
+      calculatedOrder = maxOrder + 1
+    }
+    
     try {
-      const projectId = await addProject(newProjectData, user.uid)
-      const newProject: Project = { ...newProjectData, id: projectId }
+      const projectId = await addProject(newProjectData, user.uid, calculatedOrder)
+      const newProject: Project = { ...newProjectData, id: projectId, order: calculatedOrder }
       
       setPortfolioData((currentData) => {
         if (!currentData) return currentData
         
         const newSections = [...currentData.sections]
-        const insertIndex = insertAfterIndex === -1 ? 0 : insertAfterIndex + 1
         newSections.splice(insertIndex, 0, {
           id: projectId,
           type: 'project' as const,
@@ -606,12 +707,11 @@ function EditPageContent({ params }: EditPageProps) {
       })
     } catch (error) {
       console.error('Failed to insert project below:', error)
-      const tempProject: Project = { ...newProjectData, id: `project-${Date.now()}` }
+      const tempProject: Project = { ...newProjectData, id: `project-${Date.now()}`, order: calculatedOrder }
       setPortfolioData((currentData) => {
         if (!currentData) return currentData
         
         const newSections = [...currentData.sections]
-        const insertIndex = insertAfterIndex === -1 ? 0 : insertAfterIndex + 1
         newSections.splice(insertIndex, 0, {
           id: tempProject.id,
           type: 'project' as const,
