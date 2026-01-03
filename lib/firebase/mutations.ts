@@ -128,8 +128,11 @@ export async function updateProject(projectId: string, updates: Partial<Project>
 
 /**
  * Add new project to Firestore for a specific user
+ * @param project - Project data (without id)
+ * @param userId - User ID
+ * @param order - Optional order value. If not provided, uses Date.now() for backward compatibility
  */
-export async function addProject(project: Omit<Project, 'id'>, userId: string): Promise<string> {
+export async function addProject(project: Omit<Project, 'id'>, userId: string, order?: number): Promise<string> {
   if (!isFirebaseConfigured()) {
     console.log('Firebase not configured, skipping project add')
     return `project-${Date.now()}`
@@ -140,7 +143,7 @@ export async function addProject(project: Omit<Project, 'id'>, userId: string): 
     const docRef = await addDoc(projectsRef, {
       ...project,
       userId: userId, // Associate with user
-      order: Date.now(), // Use timestamp as order
+      order: order !== undefined ? order : Date.now(), // Use provided order or timestamp as fallback
     })
     return docRef.id
   } catch (error) {

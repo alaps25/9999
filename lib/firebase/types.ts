@@ -30,6 +30,7 @@ export interface Project {
   singleImage?: string | string[] // For variant 1: single photo or multiple photos (carousel)
   tags?: string[] // Tags replace the old company/year/type metadata
   pageId?: string // Associate project with a page (menu item)
+  order?: number // Order for sorting projects (used for display order)
   content?: {
     showTitle?: boolean
     showDescription?: boolean
