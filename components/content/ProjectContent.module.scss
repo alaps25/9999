@@ -52,6 +52,15 @@
     max-width: 100%;
   }
   
+  // Big text card title - 20px font size
+  .bigTextTitle {
+    font-size: 20px !important;
+    
+    :global(.editableText),
+    :global(.typography) {
+      font-size: 20px !important;
+    }
+  }
   
   // Bio variant - large font size
   .bioDescription {
