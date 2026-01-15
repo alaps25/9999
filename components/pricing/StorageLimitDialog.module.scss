@@ -1,0 +1,53 @@
+@import '../../styles/variables';
+
+.dialog {
+  border: none;
+  border-radius: var(--border-radius, 0px);
+  padding: 0;
+  background: transparent;
+  max-width: 90vw;
+  width: 100%;
+  max-width: 500px;
+  
+  // Backdrop styling
+  &::backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(2px);
+  }
+  
+  // Remove default browser styling
+  &:not([open]) {
+    display: none;
+  }
+}
+
+.dialogContent {
+  padding: $spacing-lg;
+  // Use CSS variable directly to ensure it reads from document root
+  outline: 1px solid var(--accent-primary);
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  border-radius: var(--border-radius, 0px);
+  display: flex;
+  flex-direction: column;
+  gap: 0; // No gap - we control spacing manually
+}
+
+.title {
+  color: $error-primary;
+  margin: 0;
+  margin-bottom: 0; // No bottom margin
+}
+
+.message {
+  color: $text-secondary;
+  margin: 0;
+  margin-top: $spacing-xs; // 4px spacing from title
+}
+
+.actions {
+  display: flex;
+  gap: 0; // No gap between buttons
+  justify-content: flex-end;
+  margin-top: $spacing-lg; // Spacing from message to buttons
+}

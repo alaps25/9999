@@ -1,0 +1,75 @@
+@import '../../styles/variables';
+
+// Match settings page pattern
+.settingsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+}
+
+.settingItem {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  
+  // Fix double outline when Button and Input are adjacent
+  :global(button) + :global(input):not(.hiddenColorInput),
+  :global(button) + :global(div[class*="inputWrapper"]),
+  :global(button) + :global(button) {
+    margin-left: 1px;
+  }
+  
+  // Disable hover/click effects on setting label buttons (they're just labels)
+  // First button is always a label
+  > :global(button:first-child) {
+    pointer-events: none;
+    cursor: default;
+    
+    &:hover {
+      background-color: inherit !important;
+      color: inherit !important;
+      outline-color: inherit !important;
+    }
+    
+    &:active,
+    &:focus {
+      outline: inherit !important;
+    }
+  }
+}
+
+// Disable hover/click effects on plan name button (non-interactive label)
+.planNameButton {
+  pointer-events: none;
+  cursor: default;
+  
+  &:hover {
+    background-color: inherit !important;
+    color: inherit !important;
+    outline-color: inherit !important;
+  }
+  
+  &:active,
+  &:focus {
+    outline: inherit !important;
+  }
+}
+
+.planButton {
+  flex: 1;
+  min-width: 120px;
+}
+
+.viewPlansButton {
+  justify-content: space-between;
+}
+
+.manageBillingButton {
+  justify-content: space-between;
+}
+
+.storageContent {
+  flex: 1;
+  min-width: 200px;
+}
+

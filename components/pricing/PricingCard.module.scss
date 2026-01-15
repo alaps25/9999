@@ -1,0 +1,73 @@
+@import '../../styles/variables';
+
+.pricingCard {
+  position: relative;
+  padding: 24px;
+  outline: 1px solid $accent-primary;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  border-radius: var(--border-radius, 0px);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.planName {
+  margin: 0;
+  color: $text-secondary; // Same color as feature description text
+}
+
+.priceRow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.price {
+  margin: 0;
+  color: $accent-primary; // Only prices have accent color
+  font-weight: 600;
+}
+
+.yearlyPrice {
+  color: $accent-primary; // Same design as monthly price
+  margin: 0;
+  font-weight: 600; // Same weight as monthly
+}
+
+.features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.checkIcon {
+  color: $text-secondary; // Same color as text
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.featureText {
+  color: $text-secondary;
+  margin: 0;
+}
+
+.actionButton {
+  width: 100%;
+  margin-top: auto;
+}
+

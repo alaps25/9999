@@ -119,9 +119,205 @@
   pointer-events: none;
 }
 
+.infoIconWrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+}
+
+.infoIcon {
+  color: $accent-primary;
+  transition: color 0.2s ease;
+  
+  .infoIconWrapper:hover & {
+    color: $accent-primary;
+  }
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: $accent-primary;
+  outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
+  font-size: 0.75rem;
+  font-family: $font-family-mono;
+  color: $accent-secondary;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+  
+  .infoIconWrapper:hover & {
+    opacity: 1;
+  }
+  
+  // Arrow pointing down
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: $accent-primary;
+  }
+}
+
 .accountEmail {
   font-size: 20px;
   color: $accent-primary;
   margin: 0;
+}
+
+// Warning section styles (for approaching storage limit)
+// Only override accent colors (outline, text, icons) - keep everything else default
+// Uses design system warning colors for accessibility and theme support
+.warningSection {
+  // Override outline color using design system warning color
+  outline-color: $warning-primary;
+  
+  // Override accent color for this section only using warning color
+  --accent-primary: var(--warning-primary);
+  
+  // Override gap to 0 so we can control spacing manually (4px between title and subtext)
+  gap: 0;
+  
+  // Override title text color using design system warning color
+  .warningMessageTitle {
+    color: $warning-primary;
+  }
+  
+  // Add spacing between subtext and settingsGroup
+  .settingsGroup {
+    margin-top: $spacing-lg;
+  }
+  
+  // Override button outlines and icons (they use accent-primary CSS variable)
+  // Buttons will automatically use the warning color via CSS variable
+  
+  // Override StorageUsage component accent colors using design system
+  .storageContent {
+    :global(.usageText) {
+      outline-color: $warning-primary !important;
+    }
+    
+    :global(.usedText) {
+      color: $warning-primary !important;
+    }
+    
+    :global(.progressBarContainer) {
+      outline-color: $warning-primary !important;
+    }
+    
+    :global(.progressBar) {
+      background-color: $warning-primary !important;
+    }
+  }
+}
+
+.warningMessageTitle {
+  // No size override - uses Typography h2 variant from design system
+  color: $warning-primary;
+  margin-bottom: 0 !important; // Ensure no bottom margin
+}
+
+.warningMessageSubtext {
+  // No size override - uses Typography body variant from design system
+  color: $text-secondary;
+  margin-top: $spacing-xs !important; // 4px spacing from h2 title
+  margin-bottom: 0;
+}
+
+// Error section styles (for when storage limit is reached - 100%+)
+.errorSection {
+  // Override outline color using design system error color
+  outline-color: $error-primary;
+  
+  // Override accent color for this section only using error color
+  --accent-primary: var(--error-primary);
+  
+  // Override gap to 0 so we can control spacing manually (4px between title and subtext)
+  gap: 0;
+  
+  // Override title text color using design system error color
+  .errorMessageTitle {
+    color: $error-primary;
+  }
+  
+  // Add spacing between subtext and settingsGroup
+  .settingsGroup {
+    margin-top: $spacing-lg;
+  }
+  
+  // Override StorageUsage component accent colors using design system
+  .storageContent {
+    :global(.usageText) {
+      outline-color: $error-primary !important;
+    }
+    
+    :global(.usedText) {
+      color: $error-primary !important;
+    }
+    
+    :global(.progressBarContainer) {
+      outline-color: $error-primary !important;
+    }
+    
+    :global(.progressBar) {
+      background-color: $error-primary !important;
+    }
+  }
+}
+
+.errorMessageTitle {
+  // No size override - uses Typography h2 variant from design system
+  color: $error-primary;
+  margin-bottom: 0 !important; // Ensure no bottom margin
+}
+
+.errorMessageSubtext {
+  // No size override - uses Typography body variant from design system
+  color: $text-secondary;
+  margin-top: $spacing-xs !important; // 4px spacing from h2 title
+  margin-bottom: 0;
+}
+
+.logoutButton {
+  justify-content: space-between;
+}
+
+.deleteAccountButton {
+  color: var(--error-primary, #DC2626) !important;
+  outline-color: var(--error-primary, #DC2626) !important;
+  
+  &:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--error-primary, #DC2626) 10%, transparent) !important;
+    color: var(--error-primary, #DC2626) !important;
+    outline-color: var(--error-primary, #DC2626) !important;
+  }
+  
+  &:active:not(:disabled) {
+    background-color: color-mix(in srgb, var(--error-primary, #DC2626) 20%, transparent) !important;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+  }
+  
+  :global(svg) {
+    color: var(--error-primary, #DC2626) !important;
+  }
+}
+
+.storageContent {
+  flex: 1;
+  min-width: 200px;
 }
 

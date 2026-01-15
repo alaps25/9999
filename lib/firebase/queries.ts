@@ -429,7 +429,7 @@ export async function getUserTags(userId: string): Promise<string[]> {
 
 /**
  * Get user settings from Firestore
- * Returns user settings (accent color, rounded corners, theme, visibility)
+ * Returns user settings (accent color, rounded corners, theme, visibility, subscription)
  */
 export async function getUserSettings(userId: string): Promise<{
   accentColor?: string
@@ -438,6 +438,7 @@ export async function getUserSettings(userId: string): Promise<{
   visibility?: string
   passwordHash?: string
   password?: string // Plaintext password for viewing/sharing
+  subscription?: import('./types').Subscription
 } | null> {
   if (!isFirebaseConfigured() || !db) {
     console.log('Firebase not configured, returning null settings')

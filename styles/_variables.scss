@@ -9,6 +9,16 @@ $text-primary: var(--text-primary, #000000);
 $text-secondary: var(--text-secondary, #666666);
 $accent-blue: #0066FF;
 
+// Warning colors (accessible in both light and dark modes)
+// Use CSS custom properties for theme-aware warning colors
+$warning-primary: var(--warning-primary, #F59E0B); // Amber/orange - accessible on white
+$warning-secondary: var(--warning-secondary, #92400E); // Dark amber - accessible on light backgrounds
+
+// Error colors (for critical states like storage limit reached)
+// Use CSS custom properties for theme-aware error colors
+$error-primary: var(--error-primary, #DC2626); // Red - accessible on white
+$error-secondary: var(--error-secondary, #991B1B); // Dark red - accessible on light backgrounds
+
 $gray-50: #FAFAFA;
 $gray-100: #F5F5F5;
 $gray-200: #E5E5E5;

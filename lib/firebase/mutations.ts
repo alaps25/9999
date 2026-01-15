@@ -304,7 +304,7 @@ export async function updateUsername(userId: string, newUsername: string, userEm
 }
 
 /**
- * Save user settings (accent color, rounded corners, theme, visibility) to Firestore
+ * Save user settings (accent color, rounded corners, theme, visibility, subscription) to Firestore
  * Stores settings in the user's document
  */
 export async function saveUserSettings(
@@ -316,6 +316,7 @@ export async function saveUserSettings(
     visibility?: string
     password?: string // Plaintext password for viewing/sharing
     passwordHash?: string // Hashed password for verification
+    subscription?: import('./types').Subscription
   }
 ): Promise<void> {
   if (!isFirebaseConfigured()) {

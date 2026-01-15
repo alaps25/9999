@@ -59,3 +59,26 @@ export interface PortfolioData {
   }
 }
 
+/**
+ * Subscription plan types
+ */
+export type Plan = 'base' | 'mid' | 'pro'
+
+/**
+ * Subscription status types
+ */
+export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete' | 'incomplete_expired'
+
+/**
+ * Subscription data structure
+ */
+export interface Subscription {
+  stripeCustomerId?: string
+  stripeSubscriptionId?: string
+  status: SubscriptionStatus
+  plan: Plan
+  currentPeriodStart?: string // ISO date string
+  currentPeriodEnd?: string   // ISO date string
+  cancelAtPeriodEnd?: boolean
+}
+

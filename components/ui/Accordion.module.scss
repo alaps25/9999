@@ -1,0 +1,103 @@
+@import '../../styles/variables';
+
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+.accordionItem {
+  outline: 1px solid $accent-primary;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  border-radius: var(--border-radius, 0px);
+  overflow: hidden;
+  
+  // Remove bottom outline for all items except the last
+  &:not(:last-child) {
+    margin-bottom: -1px; // Overlap borders
+  }
+}
+
+.accordionHeader {
+  width: 100%;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba($accent-primary, 0.05);
+  }
+  
+  &:focus-visible {
+    outline: 2px solid $accent-primary;
+    outline-offset: -2px;
+  }
+}
+
+.accordionTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: $accent-primary;
+  margin: 0;
+  font-family: $font-family-mono;
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: $accent-primary;
+  transition: transform 0.2s ease;
+  margin-left: 16px;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.accordionContent {
+  padding: 0 24px 24px 24px;
+  color: $gray-500;
+  font-family: $font-family-mono;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  
+  // Typography styles for content
+  p {
+    margin: 0 0 1em 0;
+    color: $gray-500;
+    font-size: 12px;
+    font-weight: 400;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  ul, ol {
+    margin: 0 0 1em 0;
+    padding-left: 1.5em;
+    color: $gray-500;
+    font-size: 12px;
+    font-weight: 400;
+  }
+  
+  li {
+    margin-bottom: 0.5em;
+  }
+  
+  strong {
+    font-weight: 700;
+    color: $gray-500;
+    font-size: 12px;
+  }
+}
+

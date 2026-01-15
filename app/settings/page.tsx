@@ -10,13 +10,17 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Typography } from '@/components/ui/Typography'
-import { Palette, Square, Sun, EyeOff, Eye, ArrowRight, Trash2, Hash, User, Check, AlertCircle } from 'lucide-react'
+import { SubscriptionStatus } from '@/components/pricing/SubscriptionStatus'
+import { FeatureGate } from '@/components/pricing/FeatureGate'
+import { Palette, Square, Sun, EyeOff, Eye, ArrowRight, Trash2, Hash, User, AlertCircle, Info, Check, LogOut } from 'lucide-react'
 import { getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { saveUserSettings, updateUsername } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import { applyTheme, setupSystemThemeListener } from '@/lib/utils/theme'
 import { hashPassword } from '@/lib/utils/password'
 import { validateUsername, isUsernameAvailable } from '@/lib/utils/user'
+import { useSubscription } from '@/hooks/useSubscription'
+import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import styles from './page.module.scss'
 import type { MenuItem } from '@/lib/firebase/types'
 
@@ -75,10 +79,12 @@ function SettingsContent() {
             // Apply rounded corners globally
             document.documentElement.style.setProperty('--border-radius', `${cappedValue}px`)
           }
-          // Set visibility - if PRIVATE but no password, default to PUBLIC
+          // Set visibility - if PRIVATE but no password or no password protection feature, default to PUBLIC
           const hasPassword = (settings.password && settings.password.trim() !== '') || 
                              (settings.passwordHash && settings.passwordHash.trim() !== '')
           
+          // Check if user has password protection feature (will be checked later via hook)
+          // For now, if PRIVATE but no password, default to PUBLIC
           if (settings.visibility === 'PRIVATE' && !hasPassword) {
             setVisibility('PUBLIC')
             setHasExistingPassword(false)
@@ -429,9 +435,21 @@ function SettingsContent() {
     { label: 'DARK', value: 'DARK' },
   ]
 
+  const { canAccessFeature } = useSubscription()
+  const hasPasswordProtection = canAccessFeature('passwordProtection')
+  
+  // Reset visibility to PUBLIC if user doesn't have password protection feature
+  React.useEffect(() => {
+    if (!hasPasswordProtection && visibility === 'PRIVATE') {
+      setVisibility('PUBLIC')
+      setPassword('')
+      setHasExistingPassword(false)
+    }
+  }, [hasPasswordProtection, visibility]) // Reset when password protection or visibility changes
+
   const visibilityOptions = [
-    { label: 'PRIVATE', value: 'PRIVATE' },
     { label: 'PUBLIC', value: 'PUBLIC' },
+    ...(hasPasswordProtection ? [{ label: 'PRIVATE', value: 'PRIVATE' }] : []),
   ]
 
   const handleShareClick = async () => {
@@ -510,11 +528,8 @@ function SettingsContent() {
     href: userData?.username ? `/${userData.username}/${item.slug || 'page'}` : '#',
   }))
 
-  // Secondary menu items (SHARE and SETTINGS)
-  const secondaryMenuItems = [
-    { id: 'share', label: 'SHARE', onClick: handleShareClick },
-    { id: 'settings', label: 'SETTINGS', href: '/settings', isActive: true },
-  ]
+  // Secondary menu items
+  const secondaryMenuItems = getSecondaryMenuItems(handleShareClick, '/settings')
 
   return (
     <div className={styles.page}>
@@ -523,11 +538,74 @@ function SettingsContent() {
         <div className={styles.settingsContainer}>
           {/* Settings Section */}
           <div className={styles.section}>
-            <Typography variant="h1" className={styles.settingsTitle}>
+            <Typography variant="h2" className={styles.settingsTitle}>
               Settings
             </Typography>
 
             <div className={styles.settingsGroup}>
+              {/* Username Setting */}
+              <div className={styles.settingItem}>
+                <Button variant="medium" size="md">
+                  <User size={16} />
+                  USERNAME
+                </Button>
+                <Input
+                  type="text"
+                  placeholder="username"
+                  value={username}
+                  onChange={handleUsernameChange}
+                  maxLength={20}
+                  rightIcon={
+                    username.trim() && username.trim().length >= 3 && username !== userData?.username ? (
+                      usernameAvailability === 'checking' ? null : usernameAvailability === 'available' ? (
+                        <Check size={12} style={{ color: 'var(--accent-primary)' }} />
+                      ) : usernameAvailability === 'unavailable' ? (
+                        <AlertCircle size={12} style={{ color: '#ff4444' }} />
+                      ) : null
+                    ) : null
+                  }
+                />
+              </div>
+
+              {/* Visibility Setting */}
+              <div className={styles.settingItem}>
+                <Button variant="medium" size="md">
+                  <EyeOff size={16} />
+                  VISIBILITY
+                </Button>
+                <Dropdown
+                  options={visibilityOptions}
+                  value={hasPasswordProtection ? visibility : 'PUBLIC'}
+                  onSelect={(value) => {
+                    if (value === 'PRIVATE' && !hasPasswordProtection) {
+                      return // Don't allow selecting PRIVATE without password protection
+                    }
+                    setVisibility(value)
+                  }}
+                  variant="medium"
+                  size="md"
+                  disabled={!hasPasswordProtection}
+                />
+                {!hasPasswordProtection && (
+                  <div className={styles.infoIconWrapper}>
+                    <Info size={16} className={styles.infoIcon} />
+                    <div className={styles.tooltip}>
+                      Upgrade to Mid plan to enable password protection
+                    </div>
+                  </div>
+                )}
+                {visibility === 'PRIVATE' && hasPasswordProtection && (
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="PASSWORD"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    rightIcon={showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
+                    onRightIconClick={() => setShowPassword(!showPassword)}
+                  />
+                )}
+              </div>
+
               {/* Accent Setting */}
               <div className={styles.settingItem}>
                 <Button variant="medium" size="md">
@@ -595,55 +673,6 @@ function SettingsContent() {
                   size="md"
                 />
               </div>
-
-              {/* Visibility Setting */}
-              <div className={styles.settingItem}>
-                <Button variant="medium" size="md">
-                  <EyeOff size={16} />
-                  VISIBILITY
-                </Button>
-                <Dropdown
-                  options={visibilityOptions}
-                  value={visibility}
-                  onSelect={(value) => setVisibility(value)}
-                  variant="medium"
-                  size="md"
-                />
-                {visibility === 'PRIVATE' && (
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="PASSWORD"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    rightIcon={showPassword ? <EyeOff size={12} /> : <Eye size={12} />}
-                    onRightIconClick={() => setShowPassword(!showPassword)}
-                  />
-                )}
-              </div>
-
-              {/* Username Setting */}
-              <div className={styles.settingItem}>
-                <Button variant="medium" size="md">
-                  <User size={16} />
-                  USERNAME
-                </Button>
-                <Input
-                  type="text"
-                  placeholder="username"
-                  value={username}
-                  onChange={handleUsernameChange}
-                  maxLength={20}
-                  rightIcon={
-                    username.trim() && username.trim().length >= 3 && username !== userData?.username ? (
-                      usernameAvailability === 'checking' ? null : usernameAvailability === 'available' ? (
-                        <Check size={12} style={{ color: 'var(--accent-primary)' }} />
-                      ) : usernameAvailability === 'unavailable' ? (
-                        <AlertCircle size={12} style={{ color: '#ff4444' }} />
-                      ) : null
-                    ) : null
-                  }
-                />
-              </div>
             </div>
 
             {saveError && (
@@ -670,6 +699,12 @@ function SettingsContent() {
             <Typography variant="h2" className={styles.accountEmail}>
               {user?.email || 'user@email.com'}
             </Typography>
+
+            <div className={styles.settingsGroup}>
+              {/* Subscription Section */}
+              <SubscriptionStatus />
+            </div>
+
             {reauthMessage && (
               <div style={{ 
                 padding: '1rem', 
@@ -687,9 +722,10 @@ function SettingsContent() {
               size="md" 
               style={{ alignSelf: 'flex-start' }}
               onClick={handleLogOut}
+              className={styles.logoutButton}
             >
               LOG OUT
-              <ArrowRight size={16} />
+              <LogOut size={16} />
             </Button>
             <Button 
               variant="medium" 
@@ -697,11 +733,13 @@ function SettingsContent() {
               style={{ alignSelf: 'flex-start' }}
               onClick={handleDeleteAccount}
               disabled={isDeleting}
+              className={styles.deleteAccountButton}
             >
               {isDeleting ? 'DELETING...' : 'DELETE ACCOUNT'}
               <Trash2 size={16} />
             </Button>
           </div>
+
         </div>
       </MainContent>
     </div>
