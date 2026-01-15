@@ -111,9 +111,9 @@ async function handleCheckoutCompleted(
     stripeSubscriptionId: subscriptionId,
     plan: plan,
     status: mapStripeStatusToSubscriptionStatus(subscription.status),
-    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    cancelAtPeriodEnd: (subscription as any).cancel_at_period_end || false,
   }
 
   await updateUserSubscription(userId, subscriptionData)
@@ -160,9 +160,9 @@ async function handleSubscriptionUpdated(
     stripeSubscriptionId: subscription.id,
     plan: plan,
     status: mapStripeStatusToSubscriptionStatus(subscription.status),
-    currentPeriodStart: new Date(subscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(subscription.current_period_end * 1000).toISOString(),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+    currentPeriodStart: new Date((subscription as any).current_period_start * 1000).toISOString(),
+    currentPeriodEnd: new Date((subscription as any).current_period_end * 1000).toISOString(),
+    cancelAtPeriodEnd: (subscription as any).cancel_at_period_end || false,
   }
 
   await updateUserSubscription(userId, subscriptionData)
@@ -222,7 +222,7 @@ async function handlePaymentFailed(
   invoice: Stripe.Invoice,
   auth: ReturnType<typeof getAdminAuth>
 ) {
-  const subscriptionId = invoice.subscription as string
+  const subscriptionId = (invoice as any).subscription as string
 
   if (!subscriptionId) {
     return
@@ -243,16 +243,25 @@ async function handlePaymentFailed(
   
   if (userDoc.exists) {
     const data = userDoc.data()
-    if (data?.subscription) {
-      const subscriptionData: Subscription = {
-        ...data.subscription,
-        status: 'past_due',
-      }
-      await userRef.update({ subscription: subscriptionData })
+    const currentSettings = data?.settings || {}
+    const currentSubscription = currentSettings.subscription || {}
+    
+    // Only update status if it's not already canceled or incomplete
+    if (currentSubscription.status !== 'canceled' && currentSubscription.status !== 'incomplete_expired') {
+      await userRef.set({
+        settings: {
+          ...currentSettings,
+          subscription: {
+            ...currentSubscription,
+            status: 'past_due',
+          },
+        },
+      }, { merge: true })
+      console.warn(`Payment failed for user ${userId}. Subscription status set to past_due.`)
+    } else {
+      console.log(`Payment failed for user ${userId}, but subscription is already ${currentSubscription.status}. No status change.`)
     }
   }
-
-  console.log(`Payment failed for user ${userId}, subscription ${subscriptionId}`)
 }
 
 /**
@@ -295,7 +304,7 @@ async function updateUserSubscription(userId: string, subscription: Subscription
  * This needs to match your STRIPE_PRICE_IDS configuration
  */
 function getPlanFromPriceId(priceId: string): Plan | null {
-  const { STRIPE_PRICE_IDS } = require('@/lib/stripe/config')
+  const { STRIPE_PRICE_IDS } = require('@/lib/stripe/config') as { STRIPE_PRICE_IDS: Record<string, { monthly: string; yearly: string }> }
   
   for (const [plan, prices] of Object.entries(STRIPE_PRICE_IDS)) {
     if (prices.monthly === priceId || prices.yearly === priceId) {

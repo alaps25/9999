@@ -1,21 +1,19 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useAuth } from '@/contexts/AuthContext'
 import { Typography } from '@/components/ui/Typography'
 import { Button } from '@/components/ui/Button'
 import { Check } from 'lucide-react'
 import styles from './page.module.scss'
 
 /**
- * Pricing success page
+ * Pricing success page content
  * Shown after successful Stripe checkout
  */
-export default function PricingSuccessPage() {
+function PricingSuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -69,5 +67,21 @@ export default function PricingSuccessPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * Pricing success page
+ * Wrapped in Suspense for useSearchParams
+ */
+export default function PricingSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className={styles.container}>
+        <Typography variant="body">Loading...</Typography>
+      </div>
+    }>
+      <PricingSuccessContent />
+    </Suspense>
   )
 }

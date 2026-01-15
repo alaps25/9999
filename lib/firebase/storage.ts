@@ -163,7 +163,7 @@ export async function getTotalFileSize(urls: string[]): Promise<number> {
   const sizes = await Promise.all(sizePromises)
   
   // Sum all sizes, ignoring null values (failed fetches)
-  const total = sizes.reduce((total, size) => total + (size || 0), 0)
+  const total = sizes.reduce((acc: number, size) => acc + (size || 0), 0)
   
   return total
 }
