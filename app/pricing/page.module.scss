@@ -1,0 +1,86 @@
+@import '../../styles/variables';
+
+.page {
+  min-height: 100vh;
+  padding-top: 72px;
+  padding-bottom: 48px;
+  padding-left: 0;
+  padding-right: 0;
+  display: flex;
+  flex-direction: row;
+  gap: $spacing-xl;
+  align-items: flex-start;
+  max-width: calc(#{$sidebar-width} + #{$spacing-xl} + 900px);
+  margin: 0 auto;
+  width: 100%;
+  background-color: $accent-secondary;
+  
+  @media (max-width: $breakpoint-md) {
+    flex-direction: column;
+    gap: 0;
+    max-width: 100%;
+  }
+}
+
+.settingsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 100%;
+}
+
+// Shared section styles (matching settings page)
+.section {
+  padding: 24px;
+  outline: 1px solid $accent-primary;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-lg;
+  border-radius: var(--border-radius, 0px);
+}
+
+.settingsTitle {
+  font-size: 36px;
+  font-weight: 700;
+  color: $accent-primary;
+  margin: 0;
+}
+
+.billingSelector {
+  display: flex;
+  //gap: $spacing-sm;
+  //margin-bottom: $spacing-lg;
+  justify-content: flex-start;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  width: 100%;
+  
+  // Remove double borders between cards
+  > * {
+    margin-right: -1px;
+    
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+  
+  @media (max-width: $breakpoint-md) {
+    grid-template-columns: 1fr;
+    
+    > * {
+      margin-right: 0;
+      margin-bottom: -1px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+

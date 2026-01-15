@@ -48,7 +48,17 @@ import { generateSlug } from '@/lib/utils/slug'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { Eye, GripVertical, Save } from 'lucide-react'
+import { ArrowRight, Eye, GripVertical, Save } from 'lucide-react'
+import { useStorageUsage } from '@/hooks/useStorageUsage'
+import { useSubscription } from '@/hooks/useSubscription'
+import { UpgradePrompt } from '@/components/pricing/UpgradePrompt'
+import { StorageUsage } from '@/components/pricing/StorageUsage'
+import { StorageLimitDialog } from '@/components/pricing/StorageLimitDialog'
+import { PLAN_NAMES } from '@/lib/utils/features'
+import { getSecondaryMenuItems } from '@/lib/utils/navigation'
+import { Typography } from '@/components/ui/Typography'
+import { ArrowUp, Check } from 'lucide-react'
+import warningStyles from '@/app/settings/page.module.scss'
 import styles from '../../../page.module.scss'
 
 interface EditPageProps {
@@ -61,6 +71,8 @@ interface EditPageProps {
 function EditPageContent({ params }: EditPageProps) {
   const router = useRouter()
   const { user, userData } = useAuth()
+  const { storageLimitBytes, plan } = useSubscription()
+  const storageUsage = useStorageUsage()
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPageId, setCurrentPageId] = useState<string | null>(null)
@@ -71,6 +83,10 @@ function EditPageContent({ params }: EditPageProps) {
   // Reorder mode state
   const [isReorderMode, setIsReorderMode] = useState(false)
   const [reorderedSections, setReorderedSections] = useState<PortfolioData['sections']>([])
+  // Storage limit warning state
+  const [showStorageWarning, setShowStorageWarning] = useState(false)
+  // Storage limit dialog state
+  const [showStorageLimitDialog, setShowStorageLimitDialog] = useState(false)
 
   // Extract page slug and username from params
   const pageSlug = params.slug
@@ -298,6 +314,12 @@ function EditPageContent({ params }: EditPageProps) {
   // Add new menu item - saves to Firebase immediately
   const handleAddMenuItem = async () => {
     if (!user || !userData) return
+    
+    // Check storage limit
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
     const newItem: Omit<MenuItem, 'id'> = {
       label: 'PAGE',
       isActive: false,
@@ -534,6 +556,13 @@ function EditPageContent({ params }: EditPageProps) {
     cardType: 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text' = 'v-card'
   ) => {
     if (!user || !portfolioData) return
+    
+    // Check storage limit
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
+    
     const newProjectData = createProjectDataByType(cardType)
     
     // Calculate order value based on insertion position
@@ -633,6 +662,12 @@ function EditPageContent({ params }: EditPageProps) {
     cardType: 'v-card' | 'h-card' | 'media' | 'slides' | 'big-text' = 'v-card'
   ) => {
     if (!user || !portfolioData) return
+    
+    // Check storage limit
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
     const newProjectData = createProjectDataByType(cardType)
     
     // Calculate order value based on insertion position
@@ -789,6 +824,23 @@ function EditPageContent({ params }: EditPageProps) {
   // Handle media file selection - uploads to Firebase Storage
   const handleMediaChange = async (projectId: string, files: File[]) => {
     if (!user) return
+    
+    // Check if storage limit is already reached
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
+    
+    // Check storage limit before upload
+    const totalFileSize = files.reduce((sum, file) => sum + file.size, 0)
+    const newTotalSize = storageUsage.usedBytes + totalFileSize
+    
+    if (newTotalSize > storageLimitBytes) {
+      setShowStorageWarning(true)
+      // Show error message
+      alert(`Storage limit exceeded. You have ${storageUsage.remainingFormatted} remaining, but trying to upload ${(totalFileSize / 1024 / 1024).toFixed(2)} MB. Please upgrade your plan or remove some images.`)
+      return
+    }
     
     // Get current images to determine starting index for loading states
     const section = portfolioData?.sections.find(
@@ -1124,6 +1176,12 @@ function EditPageContent({ params }: EditPageProps) {
   // Add new slide to project
   const handleAddSlide = async (projectId: string) => {
     if (!user) return
+    
+    // Check storage limit
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
     const newSlide: Slide = {
       id: `slide-${Date.now()}`,
       image: '',
@@ -1220,6 +1278,12 @@ function EditPageContent({ params }: EditPageProps) {
     files: File[]
   ) => {
     if (!user || files.length === 0) return
+    
+    // Check if storage limit is already reached
+    if (storageUsage.percentage >= 100) {
+      setShowStorageLimitDialog(true)
+      return
+    }
 
     // Set loading state for this slide
     setUploadingStates((prev) => {
@@ -1504,11 +1568,8 @@ function EditPageContent({ params }: EditPageProps) {
     }
   })
 
-  // Secondary menu items (SHARE and SETTINGS)
-  const secondaryMenuItems = [
-    { id: 'share', label: 'SHARE', onClick: handleShareClick },
-    { id: 'settings', label: 'SETTINGS', href: '/settings' },
-  ]
+  // Secondary menu items
+  const secondaryMenuItems = getSecondaryMenuItems(handleShareClick)
 
   // Sortable card wrapper component
   const SortableCard = ({ id, children }: { id: string; children: React.ReactNode }) => {
@@ -1606,6 +1667,98 @@ function EditPageContent({ params }: EditPageProps) {
         )}
         {/* Projects Section */}
         <div className={styles.projectsSection}>
+          {/* Storage Limit Warning - Show when approaching limit (80%+) */}
+          {userData?.username === username && storageUsage.percentage >= 80 && storageUsage.percentage < 100 && (
+            <div className={`${warningStyles.section} ${warningStyles.warningSection}`}>
+              {/* Title */}
+              <Typography variant="h2" className={warningStyles.warningMessageTitle}>
+                Storage limit approaching
+              </Typography>
+              
+              {/* Subtext */}
+              <Typography variant="body" className={warningStyles.warningMessageSubtext}>
+                You&apos;re running low on storage space. Upgrade your plan to continue uploading images and projects.
+              </Typography>
+
+              <div className={warningStyles.settingsGroup}>
+                {/* Storage Row - First */}
+                <div className={warningStyles.settingItem}>
+                  <Button variant="medium" size="md">
+                    STORAGE
+                  </Button>
+                  <div className={warningStyles.storageContent}>
+                    <StorageUsage showLabel={false} showProgressBar />
+                  </div>
+                </div>
+
+                {/* Plan Row - Second */}
+                <div className={warningStyles.settingItem}>
+                  <Button variant="medium" size="md">
+                    YOUR SUBSCRIPTION
+                  </Button>
+                  <Button variant="medium" size="md">
+                    <Check size={16} />
+                    {PLAN_NAMES[plan].toUpperCase()} {plan === 'base' ? '[FREE]' : ''}
+                  </Button>
+                  <Button
+                    variant="high"
+                    size="md"
+                    onClick={() => router.push('/pricing')}
+                  >
+                    View plans
+                    <ArrowRight size={16} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Storage Limit Reached - Show when at limit (100%+) */}
+          {userData?.username === username && storageUsage.percentage >= 100 && (
+            <div className={`${warningStyles.section} ${warningStyles.errorSection}`}>
+              {/* Title */}
+              <Typography variant="h2" className={warningStyles.errorMessageTitle}>
+                Storage Limit Reached
+              </Typography>
+              
+              {/* Subtext */}
+              <Typography variant="body" className={warningStyles.errorMessageSubtext}>
+                You&apos;ve reached your storage limit. Upgrade your plan to continue uploading images and projects.
+              </Typography>
+
+              <div className={warningStyles.settingsGroup}>
+                {/* Storage Row - First */}
+                <div className={warningStyles.settingItem}>
+                  <Button variant="medium" size="md">
+                    STORAGE
+                  </Button>
+                  <div className={warningStyles.storageContent}>
+                    <StorageUsage showLabel={false} showProgressBar />
+                  </div>
+                </div>
+
+                {/* Plan Row - Second */}
+                <div className={warningStyles.settingItem}>
+                  <Button variant="medium" size="md">
+                    YOUR SUBSCRIPTION
+                  </Button>
+                  <Button variant="medium" size="md">
+                    <Check size={16} />
+                    {PLAN_NAMES[plan].toUpperCase()} {plan === 'base' ? '[FREE]' : ''}
+                  </Button>
+                  <Button
+                    variant="high"
+                    size="md"
+                    onClick={() => router.push('/pricing')}
+                  >
+                    View plans
+                    <ArrowRight size={16} />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {isReorderMode ? (
             <DndContext
               sensors={sensors}
@@ -1793,6 +1946,12 @@ function EditPageContent({ params }: EditPageProps) {
           )}
         </div>
       </MainContent>
+      
+      {/* Storage Limit Dialog */}
+      <StorageLimitDialog
+        isOpen={showStorageLimitDialog}
+        onClose={() => setShowStorageLimitDialog(false)}
+      />
     </div>
   )
 }

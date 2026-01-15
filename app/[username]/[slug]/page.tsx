@@ -12,6 +12,7 @@ import { Typography } from '@/components/ui/Typography'
 import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { deletePage } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
+import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import { getUserIdByUsername } from '@/lib/utils/user'
 import { hasValidSession } from '@/lib/utils/session'
 import { applyTheme } from '@/lib/utils/theme'
@@ -196,11 +197,11 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
     }
   })
 
-  // Secondary menu items (SHARE and SETTINGS)
-  // Only show SETTINGS if user is viewing their own page
-  const secondaryMenuItems = [
+  // Secondary menu items - show all for logged-in users viewing their own page
+  const secondaryMenuItems = userData?.username === username 
+    ? getSecondaryMenuItems(handleShareClick)
+    : [
     { id: 'share', label: 'SHARE', onClick: handleShareClick },
-    ...(userData?.username === username ? [{ id: 'settings', label: 'SETTINGS', href: '/settings' }] : []),
   ]
 
   return (
@@ -236,10 +237,8 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
         <div className={styles.projectsSection}>
           {/* Show default add button when there's no content */}
           {!hasContent && (
-            <div className={styles.addProjectButton}>
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+            <div className={styles.emptyStateCard}>
                 No content yet. Click EDIT to add content.
-              </div>
             </div>
           )}
 

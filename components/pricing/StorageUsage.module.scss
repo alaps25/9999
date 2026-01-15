@@ -1,0 +1,115 @@
+@import '../../styles/variables';
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.label {
+  color: $text-secondary;
+}
+
+.usage {
+  color: $accent-primary;
+  font-weight: 500;
+  font-family: $font-family-mono;
+  
+  &.nearLimit {
+    color: $accent-primary;
+  }
+  
+  &.atLimit {
+    color: #ff4444;
+  }
+}
+
+.progressBarContainer {
+  flex: 1;
+  height: 32px; // Match button height
+  background-color: $accent-secondary;
+  outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
+  overflow: hidden;
+  margin-right: 1px; // Match button spacing
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  padding: 12px;
+}
+
+.progressBar {
+  height: 100%;
+  width: 0;
+  background-color: $accent-primary;
+  transition: width 0.3s ease, background-color 0.3s ease;
+  flex-shrink: 0;
+  
+  &.nearLimit {
+    background-color: $accent-primary;
+  }
+  
+  &.atLimit {
+    background-color: #ff4444;
+  }
+}
+
+.remainingBar {
+  height: 100%;
+  width: 0;
+  // Use theme-aware text-secondary color for subtle background
+  // Light mode: #666666, Dark mode: #CCCCCC - both work well as subtle backgrounds
+  background-color: $text-secondary;
+  opacity: 0.15; // Make it subtle
+  flex-shrink: 0;
+  transition: width 0.3s ease;
+}
+
+// Usage text styled like a button box
+.usageText {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px; // Match button height
+  padding: 10px 20px; // Match button padding
+  outline: 1px solid $accent-primary;
+  background-color: $accent-secondary;
+  border-radius: var(--border-radius, 0px);
+  font-family: $font-family-mono;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  gap: 0.25em;
+}
+
+.usedText {
+  color: $accent-primary;
+  
+  &.nearLimit {
+    color: $accent-primary;
+  }
+  
+  &.atLimit {
+    color: #ff4444;
+  }
+}
+
+.separator {
+  color: $text-secondary;
+}
+
+.limitText {
+  color: $text-secondary;
+}
+
+// Inline layout (for settings page)
+.inlineLayout {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+}
+

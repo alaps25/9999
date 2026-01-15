@@ -131,10 +131,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           photoURL: firebaseUser.photoURL,
         }
 
+        // Create user with default Base plan subscription
         await setDoc(userDocRef, {
           username: username,
           email: firebaseUser.email,
           createdAt: new Date().toISOString(),
+          settings: {
+            subscription: {
+              status: 'active',
+              plan: 'base',
+            },
+          },
         })
 
         setUserData(newUserData)

@@ -10,6 +10,42 @@
     --text-primary: #000000;
     --text-secondary: #666666;
     --border-radius: 0px;
+    
+  /* Warning colors - accessible in light mode */
+  --warning-primary: #F59E0B; /* Amber/orange - WCAG AA compliant on white */
+  --warning-secondary: #92400E; /* Dark amber text - readable on light backgrounds */
+  
+  /* Error colors - accessible in light mode */
+  --error-primary: #DC2626; /* Red - WCAG AA compliant on white */
+  --error-secondary: #991B1B; /* Dark red text - readable on light backgrounds */
+}
+
+/* Dark mode warning colors - adjusted for accessibility */
+[data-theme="dark"] {
+  --warning-primary: #FBBF24; /* Lighter amber - accessible on dark backgrounds */
+  --warning-secondary: #FCD34D; /* Light amber text - readable on dark backgrounds */
+  
+  /* Dark mode error colors - adjusted for accessibility */
+  --error-primary: #EF4444; /* Lighter red - accessible on dark backgrounds */
+  --error-secondary: #FCA5A5; /* Light red text - readable on dark backgrounds */
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-theme="auto"] {
+    --warning-primary: #FBBF24;
+    --warning-secondary: #FCD34D;
+    --error-primary: #EF4444;
+    --error-secondary: #FCA5A5;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="auto"] {
+    --warning-primary: #F59E0B;
+    --warning-secondary: #92400E;
+    --error-primary: #DC2626;
+    --error-secondary: #991B1B;
+  }
   }
 
   * {
