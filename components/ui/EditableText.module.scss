@@ -61,9 +61,14 @@
   &.body {
     font-size: 10px;
     line-height: 1.5;
-    // Always use text-secondary for body variant, never inherit accent color
-    // Using explicit color declaration prevents inheritance from parent elements
+    // Use text-secondary for body variant by default
     color: var(--text-secondary, $gray-700);
+  }
+  
+  // When inside a button, link, or navigation context, inherit color from parent
+  // This ensures proper accessible text color when EditableText is used as button content
+  &.inheritColor {
+    color: inherit;
   }
   
   &.caption {
