@@ -1563,6 +1563,7 @@ function EditPageContent({ params }: EditPageProps) {
           value={item.label}
           onChange={(newLabel) => handleMenuItemChange(item.id, newLabel)}
           variant="body"
+          inheritColor
         />
       ),
     }

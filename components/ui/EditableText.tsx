@@ -11,6 +11,9 @@ export interface EditableTextProps {
   placeholder?: string
   as?: 'span' | 'div' | 'p' | 'h1' | 'h2' | 'h3' | 'h4'
   variant?: 'h1' | 'h2' | 'h3' | 'h4' | 'body' | 'caption' | 'label'
+  /** When true, inherits color from parent instead of using variant color. 
+   *  Useful when EditableText is used inside buttons or navigation items. */
+  inheritColor?: boolean
 }
 
 /**
@@ -24,6 +27,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
   placeholder = 'Click to edit...',
   as: Component = 'span',
   variant,
+  inheritColor = false,
 }) => {
   const [isEditing, setIsEditing] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -93,6 +97,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
         className={cn(
           styles.editableText,
           variant && styles[variant],
+          inheritColor && styles.inheritColor,
           className
         )}
       >
@@ -113,6 +118,7 @@ export const EditableText: React.FC<EditableTextProps> = ({
       className={cn(
         styles.editableText,
         variant && styles[variant],
+        inheritColor && styles.inheritColor,
         isEditing && styles.editing,
         // Show placeholder styling only when current text matches placeholder (not while typing)
         currentText === placeholder && !isEditing && styles.placeholder,
