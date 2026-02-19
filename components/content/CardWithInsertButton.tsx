@@ -19,6 +19,7 @@ export interface CardWithInsertButtonProps {
   onSlideDescriptionChange?: (slideId: string, description: string) => void
   onMediaChange?: (files: File[]) => void
   onMediaDelete?: (index?: number) => void
+  onAddEmptySlot?: () => void
   onSlideImageChange?: (slideId: string, files: File[]) => void
   onSlideImageDelete?: (slideId: string) => void
   onSlideDelete?: (slideId: string) => void
@@ -48,6 +49,7 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
   onSlideDescriptionChange,
   onMediaChange,
   onMediaDelete,
+  onAddEmptySlot,
   onSlideImageChange,
   onSlideImageDelete,
   onSlideDelete,
@@ -83,6 +85,7 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
                 onSlideDescriptionChange={onSlideDescriptionChange}
                 onMediaChange={onMediaChange}
         onMediaDelete={onMediaDelete}
+        onAddEmptySlot={onAddEmptySlot}
         onSlideImageChange={onSlideImageChange}
         onSlideImageDelete={onSlideImageDelete}
         onSlideDelete={onSlideDelete}
