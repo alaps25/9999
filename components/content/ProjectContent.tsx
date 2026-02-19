@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils'
 import { Typography } from '@/components/ui/Typography'
 import { EditableText } from '@/components/ui/EditableText'
 import { TagInput } from '@/components/ui/TagInput'
+import { Tags } from './Tags'
 import { MediaCarousel } from './MediaCarousel'
 import type { Project } from '@/lib/firebase/types'
 import styles from './ProjectContent.module.scss'
@@ -180,14 +181,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               />
             ) : (
               displayTags.length > 0 && (
-                <div className={styles.tagDisplay}>
-                  {displayTags.map((tag, index) => (
-                    <React.Fragment key={index}>
-                      <span className={styles.tag}>{tag}</span>
-                      {index < displayTags.length - 1 && <span className={styles.separator}>|</span>}
-                    </React.Fragment>
-                  ))}
-                </div>
+                <Tags tags={displayTags} />
               )
             )}
           </div>

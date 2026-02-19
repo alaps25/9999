@@ -101,28 +101,7 @@
   font-size: 10px;
   font-weight: 500;
   font-family: $font-family-sans;
-  width: 100%; // Use all available horizontal space
-  flex-wrap: wrap; // Allow tags to wrap
-  
-  .tagDisplay {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-    width: 100%; // Use all available space
-  }
-  
-  .tag {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 100px; // Truncate individual tags after 100px width
-  }
-  
-  .separator {
-    flex-shrink: 0; // Prevent separator from shrinking
-    color: $accent-primary;
-    margin: 0 0.25rem;
-  }
+  width: 100%;
+  flex-wrap: wrap;
 }
 
