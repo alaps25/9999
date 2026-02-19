@@ -31,6 +31,7 @@ export interface ProjectContentProps {
   onSlideDescriptionChange?: (slideId: string, description: string) => void
   onMediaChange?: (files: File[]) => void
   onMediaDelete?: (index?: number) => void
+  onAddEmptySlot?: () => void
   onSlideImageChange?: (slideId: string, files: File[]) => void
   onSlideImageDelete?: (slideId: string) => void
   onSlideDelete?: (slideId: string) => void
@@ -62,6 +63,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
   onSlideDescriptionChange,
   onMediaChange,
   onMediaDelete,
+  onAddEmptySlot,
   onSlideImageChange,
   onSlideImageDelete,
   onSlideDelete,
@@ -203,6 +205,7 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
               isEditable={isEditable}
               onMediaChange={onMediaChange}
               onMediaDelete={onMediaDelete}
+              onAddEmptySlot={onAddEmptySlot}
               uploadingStates={uploadingStates}
             />
           )}

@@ -17,6 +17,7 @@ export interface ProjectCardProps {
   onSlideDescriptionChange?: (slideId: string, description: string) => void
   onMediaChange?: (files: File[]) => void
   onMediaDelete?: (index?: number) => void
+  onAddEmptySlot?: () => void
   onSlideImageChange?: (slideId: string, files: File[]) => void
   onSlideImageDelete?: (slideId: string) => void
   onSlideDelete?: (slideId: string) => void
@@ -41,6 +42,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   onSlideDescriptionChange,
   onMediaChange,
   onMediaDelete,
+  onAddEmptySlot,
   onSlideImageChange,
   onSlideImageDelete,
   onSlideDelete,
@@ -74,6 +76,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
           onSlideDescriptionChange={onSlideDescriptionChange}
           onMediaChange={onMediaChange}
           onMediaDelete={onMediaDelete}
+          onAddEmptySlot={onAddEmptySlot}
           onSlideImageChange={onSlideImageChange}
           onSlideImageDelete={onSlideImageDelete}
           onSlideDelete={onSlideDelete}

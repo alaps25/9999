@@ -821,6 +821,37 @@ function EditPageContent({ params }: EditPageProps) {
     }
   }
 
+  // Handle adding empty media slot - adds empty string to singleImage array
+  const handleAddEmptyMediaSlot = (projectId: string) => {
+    setPortfolioData((currentData) => {
+      if (!currentData) return currentData
+      const updatedSections = (currentData.sections || []).map((section) => {
+        if (section.type === 'project' && section.project?.id === projectId) {
+          const existingImages = section.project.singleImage
+          const existingArray = Array.isArray(existingImages) 
+            ? existingImages 
+            : (existingImages ? [existingImages] : [])
+          
+          // Add empty string as new slot
+          const allImages = [...existingArray, '']
+          
+          return {
+            ...section,
+            project: {
+              ...section.project,
+              singleImage: allImages,
+            },
+          }
+        }
+        return section
+      })
+      return {
+        ...currentData,
+        sections: updatedSections,
+      }
+    })
+  }
+
   // Handle media file selection - uploads to Firebase Storage
   const handleMediaChange = async (projectId: string, files: File[]) => {
     if (!user) return
@@ -1914,6 +1945,7 @@ function EditPageContent({ params }: EditPageProps) {
                     }
                     onMediaChange={(files) => handleMediaChange(section.project!.id, files)}
                     onMediaDelete={(indexToDelete) => handleMediaDelete(section.project!.id, indexToDelete)}
+                    onAddEmptySlot={() => handleAddEmptyMediaSlot(section.project!.id)}
                     onSlideImageChange={(slideId, files) =>
                       handleSlideImageChange(section.project!.id, slideId, files)
                     }

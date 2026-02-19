@@ -23,6 +23,7 @@ export interface MediaCarouselProps {
   onSlideDescriptionChange?: (slideId: string, description: string) => void
   onMediaChange?: (files: File[]) => void // Now accepts array of files
   onMediaDelete?: (index?: number) => void // Optional index to delete specific image (for carousel). If not provided, deletes all.
+  onAddEmptySlot?: () => void // Add empty slot for new media (user can paste/drag/browse)
   onSlideImageChange?: (slideId: string, files: File[]) => void // Added for slide image upload
   onSlideImageDelete?: (slideId: string) => void // Added for slide image deletion
   onSlideDelete?: (slideId: string) => void // Added for deleting entire slide
@@ -48,6 +49,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   onSlideDescriptionChange,
   onMediaChange,
   onMediaDelete,
+  onAddEmptySlot,
   onSlideImageChange,
   onSlideImageDelete,
   onSlideDelete,
@@ -163,13 +165,17 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   if (variant === 'single') {
     
     // Handle both single string and array of strings
-    // Filter out empty strings and invalid URLs
-    const mediaArray = Array.isArray(singleImage) 
-      ? singleImage.filter(url => url && url.trim() !== '') 
-      : (singleImage && singleImage.trim() !== '' ? [singleImage] : [])
-    const hasMedia = mediaArray.length > 0 && mediaArray.some(url => url && url.trim() !== '')
+    // In edit mode, keep empty strings as slots; in view mode, filter them out
+    const rawMediaArray = Array.isArray(singleImage) 
+      ? singleImage 
+      : (singleImage !== undefined ? [singleImage] : [])
+    const mediaArray = isEditable 
+      ? rawMediaArray 
+      : rawMediaArray.filter(url => url && url.trim() !== '')
+    const hasMedia = mediaArray.length > 0
     const isMultiple = mediaArray.length > 1
     const currentMedia = mediaArray[mediaIndex] || ''
+    const isCurrentSlotEmpty = !currentMedia || currentMedia.trim() === ''
 
     const goToPrevious = () => {
       if (mediaIndex > 0) {
@@ -322,7 +328,7 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
         <div 
           className={cn(
             styles.singleImageContainer,
-            hasMedia && styles.hasMedia
+            !isCurrentSlotEmpty && styles.hasMedia
           )}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
@@ -337,98 +343,8 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
             style={{ display: 'none' }}
           />
           
-          {hasMedia ? (
-            <>
-              <div className={styles.mediaWrapper}>
-                <MediaAsset
-                  src={currentMedia}
-                  alt={`Project media ${mediaIndex + 1}`}
-                  priority={mediaIndex === 0}
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
-                />
-                {uploadingStates[mediaIndex] && (
-                  <div className={styles.uploadingOverlay}>
-                    <div className={styles.uploadingSpinner}></div>
-                    <div className={styles.uploadingText}>Uploading...</div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Bottom right button row: arrows (if multiple) + add + delete - show on hover */}
-              {isHovered && (
-                <div className={styles.bottomRightButtons}>
-                  {/* Navigation arrows - only show if multiple */}
-                  {isMultiple && (
-                    <>
-                      <Button
-                        variant="medium"
-                        size="md"
-                        iconOnly
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          goToPrevious()
-                        }}
-                        aria-label="Previous media"
-                        disabled={isAtStart}
-                      >
-                        <ArrowLeft size={16} />
-                      </Button>
-                      <Button
-                        variant="medium"
-                        size="md"
-                        iconOnly
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          goToNext()
-                        }}
-                        aria-label="Next media"
-                        disabled={isAtEnd}
-                      >
-                        <ArrowRight size={16} />
-                      </Button>
-                    </>
-                  )}
-                  {/* Action buttons - only show if editable */}
-                  {isEditable && (
-                    <>
-                      {/* Add more media button - only show if not singleFileOnly */}
-                      {onMediaChange && !singleFileOnly && (
-                        <Button
-                          variant="medium"
-                          size="md"
-                          iconOnly
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            if (singleFileInputRef.current) {
-                              singleFileInputRef.current.click()
-                            }
-                          }}
-                          aria-label="Add more media"
-                        >
-                          <Plus size={16} />
-                        </Button>
-                      )}
-                      {onMediaDelete && (
-                        <Button
-                          variant="medium"
-                          size="md"
-                          iconOnly
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            // Pass current mediaIndex to delete only the current image
-                            onMediaDelete(mediaIndex)
-                          }}
-                          aria-label="Delete media"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </>
-          ) : (
+          {/* Content: either media or placeholder depending on current slot */}
+          {isCurrentSlotEmpty ? (
             <div 
               ref={placeholderRef}
               tabIndex={isEditable ? 0 : -1}
@@ -462,6 +378,93 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
                   </Button>
                 )}
               </div>
+            </div>
+          ) : (
+            <div className={styles.mediaWrapper}>
+              <MediaAsset
+                src={currentMedia}
+                alt={`Project media ${mediaIndex + 1}`}
+                priority={mediaIndex === 0}
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
+              />
+              {uploadingStates[mediaIndex] && (
+                <div className={styles.uploadingOverlay}>
+                  <div className={styles.uploadingSpinner}></div>
+                  <div className={styles.uploadingText}>Uploading...</div>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Bottom right button row: arrows (if multiple) + add + delete - show on hover */}
+          {isHovered && (
+            <div className={styles.bottomRightButtons}>
+              {/* Navigation arrows - only show if multiple */}
+              {isMultiple && (
+                <>
+                  <Button
+                    variant="medium"
+                    size="md"
+                    iconOnly
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      goToPrevious()
+                    }}
+                    aria-label="Previous media"
+                    disabled={isAtStart}
+                  >
+                    <ArrowLeft size={16} />
+                  </Button>
+                  <Button
+                    variant="medium"
+                    size="md"
+                    iconOnly
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      goToNext()
+                    }}
+                    aria-label="Next media"
+                    disabled={isAtEnd}
+                  >
+                    <ArrowRight size={16} />
+                  </Button>
+                </>
+              )}
+              {/* Action buttons - only show if editable */}
+              {isEditable && (
+                <>
+                  {/* Add more media button - adds empty slot instead of opening file picker */}
+                  {onAddEmptySlot && !singleFileOnly && (
+                    <Button
+                      variant="medium"
+                      size="md"
+                      iconOnly
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onAddEmptySlot()
+                      }}
+                      aria-label="Add more media"
+                    >
+                      <Plus size={16} />
+                    </Button>
+                  )}
+                  {onMediaDelete && (
+                    <Button
+                      variant="medium"
+                      size="md"
+                      iconOnly
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        // Pass current mediaIndex to delete only the current image
+                        onMediaDelete(mediaIndex)
+                      }}
+                      aria-label="Delete media"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>
