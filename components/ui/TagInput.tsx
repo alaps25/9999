@@ -1,8 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { EditableText } from './EditableText'
 import { useAuth } from '@/contexts/AuthContext'
 import { getUserTags } from '@/lib/firebase/queries'
 import { saveUserTags } from '@/lib/firebase/mutations'
@@ -16,22 +16,21 @@ export interface TagInputProps {
 }
 
 /**
- * TagInput component - Inline editable text input for comma-separated tags
- * Uses EditableText style for seamless inline editing
+ * TagInput component - Displays tags as pills with inline input for adding more
  */
 export const TagInput: React.FC<TagInputProps> = ({
   tags = [],
   onChange,
-  placeholder = 'Add tags (separated by commas)',
+  placeholder = 'Add tag...',
   className,
 }) => {
   const { user } = useAuth()
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [userTagPool, setUserTagPool] = useState<string[]>([])
-  const [isFocused, setIsFocused] = useState(false)
-  const [currentValue, setCurrentValue] = useState('')
+  const [inputValue, setInputValue] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   // Load user tags from Firestore
   const loadUserTags = React.useCallback(async () => {
@@ -51,28 +50,19 @@ export const TagInput: React.FC<TagInputProps> = ({
     }
   }, [user, loadUserTags])
 
-  // Convert tags array to comma-separated string for display
-  const tagsString = tags.length > 0 ? tags.join(', ') : ''
-  const displayValue = tagsString || placeholder
-
-  // Parse comma-separated string to tags array
-  const parseTags = React.useCallback((value: string): string[] => {
-    if (!value || value === placeholder) return []
-    return value
-      .split(',')
-      .map(tag => tag.trim())
-      .filter(tag => tag.length > 0)
-  }, [placeholder])
-
-  // Save tags to Firestore
+  // Save tags to Firestore (case-insensitive deduplication)
   const saveTagsToFirestore = React.useCallback(async (tagsToSave: string[]) => {
     if (!user) return
     
-    // Extract unique tags
-    const uniqueTags = Array.from(new Set(tagsToSave))
-    
-    // Merge with existing user tag pool
-    const updatedTagPool = Array.from(new Set([...userTagPool, ...uniqueTags]))
+    // Merge tags case-insensitively, keeping the first occurrence's casing
+    const seen = new Map<string, string>()
+    for (const tag of [...userTagPool, ...tagsToSave]) {
+      const lower = tag.toLowerCase()
+      if (!seen.has(lower)) {
+        seen.set(lower, tag)
+      }
+    }
+    const updatedTagPool = Array.from(seen.values())
     
     try {
       await saveUserTags(user.uid, updatedTagPool)
@@ -82,105 +72,131 @@ export const TagInput: React.FC<TagInputProps> = ({
     }
   }, [user, userTagPool])
 
+  // Add a new tag (case-insensitive duplicate check)
+  const addTag = React.useCallback((tagValue: string) => {
+    const trimmed = tagValue.trim()
+    const existsAlready = tags.some(t => t.toLowerCase() === trimmed.toLowerCase())
+    if (trimmed && !existsAlready) {
+      const newTags = [...tags, trimmed]
+      onChange(newTags)
+      saveTagsToFirestore(newTags)
+      return newTags
+    }
+    return tags
+  }, [tags, onChange, saveTagsToFirestore])
+
+  // Remove a tag by index
+  const removeTag = React.useCallback((indexToRemove: number) => {
+    const newTags = tags.filter((_, index) => index !== indexToRemove)
+    onChange(newTags)
+  }, [tags, onChange])
+
   // Update suggestions based on input value
   const updateSuggestions = React.useCallback((value: string) => {
-    if (!value || value === placeholder || value.trim() === '') {
+    if (!value || value.trim() === '') {
       setSuggestions([])
       setShowSuggestions(false)
       return
     }
 
-    // Get the last tag being typed (after the last comma)
-    const parts = value.split(',')
-    const currentTag = parts[parts.length - 1].trim().toLowerCase()
-    
-    if (currentTag === '') {
-      setSuggestions([])
-      setShowSuggestions(false)
-      return
-    }
-
-    // Get existing tags from input (before the last comma)
-    const existingTags = parts.slice(0, -1).map(t => t.trim().toLowerCase()).filter(Boolean)
+    const currentTag = value.trim().toLowerCase()
+    const existingTagsLower = tags.map(t => t.toLowerCase())
     
     const filtered = userTagPool
       .filter(tag => {
         const tagLower = tag.toLowerCase()
-        return tagLower.includes(currentTag) && !existingTags.includes(tagLower)
+        return tagLower.includes(currentTag) && !existingTagsLower.includes(tagLower)
       })
-      .slice(0, 5) // Limit to 5 suggestions
+      .slice(0, 5)
     
     setSuggestions(filtered)
-    setShowSuggestions(filtered.length > 0 && isFocused)
-  }, [userTagPool, isFocused, placeholder])
+    setShowSuggestions(filtered.length > 0)
+  }, [userTagPool, tags])
 
-  // Handle value change from EditableText
-  const handleChange = (value: string) => {
-    setCurrentValue(value)
+  // Handle input change
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
     
-    // Update suggestions based on current input
-    updateSuggestions(value)
+    // Check for comma to add tag
+    if (value.includes(',')) {
+      const parts = value.split(',')
+      parts.forEach((part, index) => {
+        if (index < parts.length - 1 && part.trim()) {
+          addTag(part.trim())
+        }
+      })
+      setInputValue(parts[parts.length - 1])
+    } else {
+      setInputValue(value)
+    }
     
-    // Parse and update tags immediately
-    const parsedTags = parseTags(value)
-    onChange(parsedTags)
+    updateSuggestions(value.replace(',', ''))
   }
 
-  // Handle focus - detect when EditableText is focused
-  useEffect(() => {
-    const handleFocusIn = (e: FocusEvent) => {
-      if (containerRef.current?.contains(e.target as Node)) {
-        setIsFocused(true)
-        updateSuggestions(currentValue || tagsString)
-      }
+  // Handle key down
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault()
+      addTag(inputValue.trim())
+      setInputValue('')
+      setShowSuggestions(false)
+    } else if (e.key === 'Backspace' && !inputValue && tags.length > 0) {
+      removeTag(tags.length - 1)
     }
-
-    const handleFocusOut = async (e: FocusEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsFocused(false)
-        setShowSuggestions(false)
-        
-        // Save tags to Firestore on blur
-        const valueToSave = currentValue || tagsString
-        if (valueToSave && valueToSave !== placeholder) {
-          const parsedTags = parseTags(valueToSave)
-          await saveTagsToFirestore(parsedTags)
-        }
-      }
-    }
-
-    document.addEventListener('focusin', handleFocusIn)
-    document.addEventListener('focusout', handleFocusOut)
-    
-    return () => {
-      document.removeEventListener('focusin', handleFocusIn)
-      document.removeEventListener('focusout', handleFocusOut)
-    }
-  }, [currentValue, tagsString, placeholder, parseTags, saveTagsToFirestore, updateSuggestions])
+  }
 
   // Handle suggestion selection
-  const handleSelectSuggestion = async (suggestion: string) => {
-    const currentInput = currentValue || tagsString
-    const parts = currentInput.split(',')
-    const beforeLastComma = parts.slice(0, -1).join(', ')
-    const newValue = beforeLastComma ? `${beforeLastComma}, ${suggestion}` : suggestion
-    
-    setCurrentValue(newValue)
-    const parsedTags = parseTags(newValue)
-    onChange(parsedTags)
-    await saveTagsToFirestore(parsedTags)
+  const handleSelectSuggestion = (suggestion: string) => {
+    addTag(suggestion)
+    setInputValue('')
     setShowSuggestions(false)
+    inputRef.current?.focus()
+  }
+
+  // Handle blur
+  const handleBlur = (e: React.FocusEvent) => {
+    // Delay hiding suggestions to allow click to register
+    setTimeout(() => {
+      if (!containerRef.current?.contains(document.activeElement)) {
+        setShowSuggestions(false)
+        // Add any pending input as tag
+        if (inputValue.trim()) {
+          addTag(inputValue.trim())
+          setInputValue('')
+        }
+      }
+    }, 150)
   }
 
   return (
     <div className={cn(styles.tagInput, className)} ref={containerRef}>
+      {/* Existing tags as pills */}
+      {tags.map((tag, index) => (
+        <span key={index} className={styles.tag}>
+          {tag}
+          <button
+            type="button"
+            className={styles.removeButton}
+            onClick={() => removeTag(index)}
+            aria-label={`Remove ${tag}`}
+          >
+            <X size={10} />
+          </button>
+        </span>
+      ))}
+      
+      {/* Input for adding new tags */}
       <div className={styles.tagInputWrapper}>
-        <EditableText
-          value={displayValue}
-          onChange={handleChange}
-          variant="body"
-          placeholder={placeholder}
-          className={styles.tagInputField}
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          onFocus={() => updateSuggestions(inputValue)}
+          onBlur={handleBlur}
+          placeholder={tags.length === 0 ? placeholder : ''}
+          className={styles.textInput}
         />
         {showSuggestions && suggestions.length > 0 && (
           <div className={styles.suggestions}>
@@ -190,10 +206,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                 className={styles.suggestionItem}
                 onClick={() => handleSelectSuggestion(suggestion)}
                 type="button"
-                onMouseDown={(e) => {
-                  // Prevent blur from firing before click
-                  e.preventDefault()
-                }}
+                onMouseDown={(e) => e.preventDefault()}
               >
                 {suggestion}
               </button>
