@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { getMediaType } from '@/lib/utils/media'
@@ -27,37 +27,59 @@ export const MediaAsset: React.FC<MediaAssetProps> = ({
   priority = false,
   sizes,
 }) => {
+  const [isLoading, setIsLoading] = useState(true)
   const mediaType = getMediaType(src)
+  
+  // Reset loading state when src changes
+  useEffect(() => {
+    setIsLoading(true)
+  }, [src])
 
   // Render video
   if (mediaType === 'video') {
     return (
-      <video
-        src={src}
-        className={cn(styles.media, styles.video, className)}
-        controls
-        loop
-        muted
-        playsInline
-        autoPlay
-        style={fill ? { position: 'absolute', inset: 0 } : undefined}
-      >
-        Your browser does not support the video tag.
-      </video>
+      <div className={styles.mediaWrapper}>
+        {isLoading && (
+          <div className={styles.loadingOverlay}>
+            <div className={styles.loadingSpinner}></div>
+          </div>
+        )}
+        <video
+          src={src}
+          className={cn(styles.media, styles.video, className)}
+          controls
+          loop
+          muted
+          playsInline
+          autoPlay
+          style={fill ? { position: 'absolute', inset: 0 } : undefined}
+          onLoadedData={() => setIsLoading(false)}
+        >
+          Your browser does not support the video tag.
+        </video>
+      </div>
     )
   }
 
   // Render GIF or image
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill={fill}
-      className={cn(styles.media, styles.image, className)}
-      priority={priority}
-      sizes={sizes}
-      unoptimized={mediaType === 'gif'} // Don't optimize GIFs to preserve animation
-    />
+    <div className={styles.mediaWrapper}>
+      {isLoading && (
+        <div className={styles.loadingOverlay}>
+          <div className={styles.loadingSpinner}></div>
+        </div>
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        fill={fill}
+        className={cn(styles.media, styles.image, isLoading && styles.imageLoading, className)}
+        priority={priority}
+        sizes={sizes}
+        unoptimized={mediaType === 'gif'}
+        onLoad={() => setIsLoading(false)}
+      />
+    </div>
   )
 }
 
