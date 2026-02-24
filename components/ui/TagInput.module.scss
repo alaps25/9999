@@ -42,6 +42,7 @@
     background-color: var(--accent-secondary, $gray-100);
     color: var(--accent-primary, $gray-700);
     outline: 1px solid var(--accent-primary, $gray-200);
+    border-radius: var(--border-radius, 0px);
     
     .removeButton {
       display: flex;
