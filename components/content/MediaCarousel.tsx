@@ -8,6 +8,7 @@ import { CarouselSlide } from './CarouselSlide'
 import { EditableText } from '@/components/ui/EditableText'
 import { Button } from '@/components/ui/Button'
 import { AddButton } from '@/components/ui/AddButton'
+import { Lightbox } from '@/components/ui/Lightbox'
 import type { Slide as SlideType } from '@/lib/firebase/types'
 import styles from './MediaCarousel.module.scss'
 
@@ -67,6 +68,10 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   const [isPasteFocused, setIsPasteFocused] = useState(false)
   const singleFileInputRef = useRef<HTMLInputElement>(null)
   const placeholderRef = useRef<HTMLDivElement>(null)
+  
+  // Lightbox state
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
   
   // Track previous slides length to detect new slide additions (for slides variant)
   const prevSlidesLengthRef = useRef(slides?.length || 0)
@@ -406,7 +411,35 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
               </div>
             </div>
           ) : (
-            <div className={styles.mediaWrapper}>
+            <div 
+              className={cn(styles.mediaWrapper, styles.clickable)}
+              onClick={() => {
+                // Only open lightbox if not uploading and not in edit mode with hover actions
+                if (!uploadingStates[safeMediaIndex]) {
+                  // Filter out empty slots for lightbox
+                  const validMedia = mediaArray.filter(url => url && url.trim() !== '')
+                  if (validMedia.length > 0) {
+                    // Find the index in filtered array
+                    const lightboxIdx = validMedia.indexOf(currentMedia)
+                    setLightboxIndex(lightboxIdx >= 0 ? lightboxIdx : 0)
+                    setIsLightboxOpen(true)
+                  }
+                }
+              }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  const validMedia = mediaArray.filter(url => url && url.trim() !== '')
+                  if (validMedia.length > 0) {
+                    const lightboxIdx = validMedia.indexOf(currentMedia)
+                    setLightboxIndex(lightboxIdx >= 0 ? lightboxIdx : 0)
+                    setIsLightboxOpen(true)
+                  }
+                }
+              }}
+            >
               <MediaAsset
                 src={currentMedia}
                 alt={`Project media ${safeMediaIndex + 1}`}
@@ -494,6 +527,15 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
             </div>
           )}
         </div>
+        
+        {/* Lightbox for fullscreen view */}
+        <Lightbox
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          media={mediaArray.filter(url => url && url.trim() !== '')}
+          currentIndex={lightboxIndex}
+          onIndexChange={setLightboxIndex}
+        />
       </div>
     )
   }
