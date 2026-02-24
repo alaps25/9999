@@ -873,7 +873,7 @@ function EditPageContent({ params }: EditPageProps) {
       return
     }
     
-    // Get current images to determine starting index for loading states
+    // Get current images to determine indices for loading states
     const section = portfolioData?.sections.find(
       s => s.type === 'project' && s.project?.id === projectId
     )
@@ -881,14 +881,36 @@ function EditPageContent({ params }: EditPageProps) {
     const existingArray = Array.isArray(existingImages) 
       ? existingImages 
       : (existingImages ? [existingImages] : [])
-    const startIndex = existingArray.length
     
-    // Set loading states for new images
+    // Calculate which indices will be filled (empty slots first, then append)
+    const emptySlotIndices: number[] = []
+    existingArray.forEach((url, index) => {
+      if (!url || url.trim() === '') {
+        emptySlotIndices.push(index)
+      }
+    })
+    
+    // Determine indices where new images will go
+    const newImageIndices: number[] = []
+    let fileIdx = 0
+    // First fill empty slots
+    while (fileIdx < files.length && fileIdx < emptySlotIndices.length) {
+      newImageIndices.push(emptySlotIndices[fileIdx])
+      fileIdx++
+    }
+    // Then append remaining
+    let appendIndex = existingArray.length
+    while (fileIdx < files.length) {
+      newImageIndices.push(appendIndex++)
+      fileIdx++
+    }
+    
+    // Set loading states for new images at their actual positions
     setUploadingStates((prev) => {
       const projectStates = prev[projectId] || {}
       const newStates: Record<number, boolean> = {}
-      files.forEach((_, index) => {
-        newStates[startIndex + index] = true
+      newImageIndices.forEach((idx) => {
+        newStates[idx] = true
       })
       return {
         ...prev,
@@ -900,6 +922,7 @@ function EditPageContent({ params }: EditPageProps) {
     const tempBlobUrls = files.map(file => URL.createObjectURL(file))
     
     // Update local state immediately with blob URLs for preview
+    // Replace empty slots first, then append any remaining uploads
     setPortfolioData((currentData) => {
       if (!currentData) return currentData
       const updatedSections = (currentData.sections || []).map((section) => {
@@ -909,8 +932,25 @@ function EditPageContent({ params }: EditPageProps) {
             ? existingImages 
             : (existingImages ? [existingImages] : [])
           
-          const allImages = [...existingArray, ...tempBlobUrls]
-          const singleImage = allImages.length === 1 ? allImages[0] : allImages
+          // Find empty slots (empty strings) and replace them first
+          const resultArray = [...existingArray]
+          let blobUrlIndex = 0
+          
+          // First pass: fill empty slots
+          for (let i = 0; i < resultArray.length && blobUrlIndex < tempBlobUrls.length; i++) {
+            if (!resultArray[i] || resultArray[i].trim() === '') {
+              resultArray[i] = tempBlobUrls[blobUrlIndex]
+              blobUrlIndex++
+            }
+          }
+          
+          // Second pass: append remaining blob URLs
+          while (blobUrlIndex < tempBlobUrls.length) {
+            resultArray.push(tempBlobUrls[blobUrlIndex])
+            blobUrlIndex++
+          }
+          
+          const singleImage = resultArray.length === 1 ? resultArray[0] : resultArray
           
           return {
             ...section,
@@ -932,7 +972,7 @@ function EditPageContent({ params }: EditPageProps) {
       // Upload files to Firebase Storage
       const storageUrls = await uploadFiles(files, `projects/${projectId}/images`, user.uid)
       
-      // Update state with Firebase Storage URLs
+      // Update state with Firebase Storage URLs - replace blob URLs by matching them
       setPortfolioData((currentData) => {
         if (!currentData) return currentData
         const updatedSections = (currentData.sections || []).map((section) => {
@@ -942,10 +982,12 @@ function EditPageContent({ params }: EditPageProps) {
               ? currentImages 
               : (currentImages ? [currentImages] : [])
             
-            // Replace blob URLs with Firebase Storage URLs
-            const updatedArray = currentArray.map((url, index) => {
-              if (index >= startIndex && index < startIndex + storageUrls.length) {
-                return storageUrls[index - startIndex]
+            // Replace blob URLs with Firebase Storage URLs by matching them
+            let storageUrlIndex = 0
+            const updatedArray = currentArray.map((url) => {
+              // If this is one of our blob URLs, replace with storage URL
+              if (tempBlobUrls.includes(url) && storageUrlIndex < storageUrls.length) {
+                return storageUrls[storageUrlIndex++]
               }
               return url
             })
@@ -968,30 +1010,40 @@ function EditPageContent({ params }: EditPageProps) {
         }
       })
       
-      // Save to Firestore - use the value we calculated in the state update above
-      // The state update already replaced blob URLs with storage URLs, so we can use that
-      // But since state updates are async, we'll calculate it directly:
-      // Original existing images + new storage URLs (replacing blob URLs we added)
+      // Save to Firestore - get current state, replace blob URLs, filter empty slots
       const originalSection = portfolioData?.sections.find(
         s => s.type === 'project' && s.project?.id === projectId
       )
       if (originalSection?.type === 'project' && originalSection.project) {
-        // Get original images (before blob URLs were added)
         const originalImages = originalSection.project.singleImage
         const originalArray = Array.isArray(originalImages) 
           ? originalImages 
           : (originalImages ? [originalImages] : [])
         
-        // Final array = original images + new storage URLs
-        const finalArray = [...originalArray, ...storageUrls]
-        const singleImageToSave = finalArray.length === 1 ? finalArray[0] : finalArray
+        // Replace empty slots and blob URLs with storage URLs, then filter any remaining empty
+        let storageUrlIdx = 0
+        const finalArray = originalArray
+          .map((url) => {
+            // Replace empty slots or blob URLs with storage URLs
+            if ((!url || url.trim() === '' || isBlobUrl(url)) && storageUrlIdx < storageUrls.length) {
+              return storageUrls[storageUrlIdx++]
+            }
+            return url
+          })
+          // Filter out any remaining empty strings (shouldn't save them to DB)
+          .filter(url => url && url.trim() !== '' && !isBlobUrl(url))
+        
+        // Append any remaining storage URLs that didn't replace anything
+        while (storageUrlIdx < storageUrls.length) {
+          finalArray.push(storageUrls[storageUrlIdx++])
+        }
+        
+        const singleImageToSave = finalArray.length === 1 ? finalArray[0] : (finalArray.length > 0 ? finalArray : '')
         
         console.log('Saving to Firestore:', { 
           projectId, 
           singleImageToSave, 
-          storageUrls, 
-          startIndex,
-          originalArrayLength: originalArray.length,
+          storageUrls,
           finalArrayLength: finalArray.length
         })
         await updateProject(projectId, { singleImage: singleImageToSave }, user.uid)
@@ -1002,8 +1054,8 @@ function EditPageContent({ params }: EditPageProps) {
       setUploadingStates((prev) => {
         const projectStates = prev[projectId] || {}
         const clearedStates: Record<number, boolean> = {}
-        files.forEach((_, index) => {
-          clearedStates[startIndex + index] = false
+        newImageIndices.forEach((idx) => {
+          clearedStates[idx] = false
         })
         return {
           ...prev,
@@ -1020,8 +1072,8 @@ function EditPageContent({ params }: EditPageProps) {
       setUploadingStates((prev) => {
         const projectStates = prev[projectId] || {}
         const clearedStates: Record<number, boolean> = {}
-        files.forEach((_, index) => {
-          clearedStates[startIndex + index] = false
+        newImageIndices.forEach((idx) => {
+          clearedStates[idx] = false
         })
         return {
           ...prev,

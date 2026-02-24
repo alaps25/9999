@@ -72,13 +72,16 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   const prevSlidesLengthRef = useRef(slides?.length || 0)
   
   // Track previous singleImage array length to detect additions/deletions (for single variant)
-  const prevSingleImageLengthRef = useRef(0)
+  const prevSingleImageLengthRef = useRef<number | null>(null) // null means not initialized
   const currentMediaIndexRef = useRef(0)
+  const isInitialMountRef = useRef(true)
 
-  // Reset index when slides/images change
+  // Reset index when slides/images change (but not for single variant which has its own logic)
   useEffect(() => {
-    setCurrentIndex(0)
-  }, [slides, images, singleImage])
+    if (variant !== 'single') {
+      setCurrentIndex(0)
+    }
+  }, [slides, images, variant])
   
   // Sync mediaIndex with ref
   useEffect(() => {
@@ -88,10 +91,27 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
   // Adjust mediaIndex when singleImage array changes (for single variant)
   useEffect(() => {
     if (variant === 'single') {
-      const mediaArray = Array.isArray(singleImage) ? singleImage : (singleImage ? [singleImage] : [])
+      const rawArray = Array.isArray(singleImage) ? singleImage : (singleImage ? [singleImage] : [])
+      // In view mode, work with filtered array; in edit mode, work with raw array
+      const mediaArray = isEditable 
+        ? rawArray 
+        : rawArray.filter(url => url && url.trim() !== '')
       const currentLength = mediaArray.length
       const prevLength = prevSingleImageLengthRef.current
-      const currentIndex = currentMediaIndexRef.current
+      const currentIdx = currentMediaIndexRef.current
+      
+      // Initialize on first mount - DON'T navigate to last, stay at 0
+      if (isInitialMountRef.current || prevLength === null) {
+        isInitialMountRef.current = false
+        prevSingleImageLengthRef.current = currentLength
+        // Reset to 0 on initial mount, or clamp to valid range
+        if (currentIdx >= currentLength && currentLength > 0) {
+          setMediaIndex(currentLength - 1)
+        } else if (currentLength === 0) {
+          setMediaIndex(0)
+        }
+        return
+      }
       
       // If array length increased (new images added), navigate to the last image
       if (currentLength > prevLength && currentLength > 0) {
@@ -100,17 +120,21 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
       // If array length decreased (image was deleted), adjust index
       else if (currentLength < prevLength && currentLength > 0) {
         // If current index is out of bounds, go to last available image
-        if (currentIndex >= currentLength) {
+        if (currentIdx >= currentLength) {
           setMediaIndex(currentLength - 1)
         }
       } else if (currentLength === 0) {
         // If all images deleted, reset to 0
         setMediaIndex(0)
       }
+      // Also clamp if somehow out of bounds
+      else if (currentIdx >= currentLength && currentLength > 0) {
+        setMediaIndex(currentLength - 1)
+      }
       
       prevSingleImageLengthRef.current = currentLength
     }
-  }, [variant, singleImage])
+  }, [variant, singleImage, isEditable])
 
   // Navigate to last slide when a new slide is added (for slides variant)
   useEffect(() => {
@@ -174,23 +198,25 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
       : rawMediaArray.filter(url => url && url.trim() !== '')
     const hasMedia = mediaArray.length > 0
     const isMultiple = mediaArray.length > 1
-    const currentMedia = mediaArray[mediaIndex] || ''
+    // Clamp mediaIndex to valid range to prevent out-of-bounds access
+    const safeMediaIndex = hasMedia ? Math.min(Math.max(0, mediaIndex), mediaArray.length - 1) : 0
+    const currentMedia = hasMedia ? (mediaArray[safeMediaIndex] || '') : ''
     const isCurrentSlotEmpty = !currentMedia || currentMedia.trim() === ''
 
     const goToPrevious = () => {
-      if (mediaIndex > 0) {
-        setMediaIndex((prev) => prev - 1)
+      if (safeMediaIndex > 0) {
+        setMediaIndex((prev) => Math.max(0, prev - 1))
       }
     }
 
     const goToNext = () => {
-      if (mediaIndex < mediaArray.length - 1) {
-        setMediaIndex((prev) => prev + 1)
+      if (safeMediaIndex < mediaArray.length - 1) {
+        setMediaIndex((prev) => Math.min(prev + 1, mediaArray.length - 1))
       }
     }
     
-    const isAtStart = mediaIndex === 0
-    const isAtEnd = mediaIndex === mediaArray.length - 1
+    const isAtStart = safeMediaIndex === 0
+    const isAtEnd = safeMediaIndex === mediaArray.length - 1
 
     const handleBrowseClick = (e: React.MouseEvent) => {
       e.stopPropagation()
@@ -383,11 +409,11 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
             <div className={styles.mediaWrapper}>
               <MediaAsset
                 src={currentMedia}
-                alt={`Project media ${mediaIndex + 1}`}
-                priority={mediaIndex === 0}
+                alt={`Project media ${safeMediaIndex + 1}`}
+                priority={safeMediaIndex === 0}
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
               />
-              {uploadingStates[mediaIndex] && (
+              {uploadingStates[safeMediaIndex] && (
                 <div className={styles.uploadingOverlay}>
                   <div className={styles.uploadingSpinner}></div>
                   <div className={styles.uploadingText}>Uploading...</div>
@@ -455,8 +481,8 @@ export const MediaCarousel: React.FC<MediaCarouselProps> = ({
                       iconOnly
                       onClick={(e) => {
                         e.stopPropagation()
-                        // Pass current mediaIndex to delete only the current image
-                        onMediaDelete(mediaIndex)
+                        // Pass current safeMediaIndex to delete only the current image
+                        onMediaDelete(safeMediaIndex)
                       }}
                       aria-label="Delete media"
                     >
