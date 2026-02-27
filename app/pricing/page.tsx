@@ -2,12 +2,13 @@
 
 import React from 'react'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { Sidebar, MobileMenuButton } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
 import { PricingCard } from '@/components/pricing/PricingCard'
 import { Typography } from '@/components/ui/Typography'
 import { Button } from '@/components/ui/Button'
 import { useAuth } from '@/contexts/AuthContext'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { getMenuItems } from '@/lib/firebase/queries'
 import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import type { MenuItem } from '@/lib/firebase/types'
@@ -16,9 +17,11 @@ import styles from './page.module.scss'
 
 function PricingContent() {
   const { user, userData } = useAuth()
+  const isMobile = useIsMobile()
   const [menuItems, setMenuItems] = React.useState<MenuItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [billingPeriod, setBillingPeriod] = React.useState<'monthly' | 'yearly'>('monthly')
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   React.useEffect(() => {
     async function loadMenuItems() {
@@ -56,8 +59,24 @@ function PricingContent() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <Sidebar menuItems={[]} secondaryMenuItems={secondaryMenuItems} />
+        <Sidebar 
+          menuItems={[]} 
+          secondaryMenuItems={secondaryMenuItems}
+          mobileMenuOpen={mobileMenuOpen}
+          onMobileMenuToggle={setMobileMenuOpen}
+        />
         <MainContent>
+          {isMobile && (
+            <div className={styles.mobileHeader}>
+              <div className={styles.mobileHeaderTitle}>Pricing</div>
+              <MobileMenuButton 
+                isOpen={mobileMenuOpen} 
+                onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+                menuItems={[]}
+                secondaryMenuItems={secondaryMenuItems}
+              />
+            </div>
+          )}
           <div className={styles.settingsContainer}>
             <div>Loading...</div>
           </div>
@@ -68,8 +87,24 @@ function PricingContent() {
 
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={menuItemsWithHrefs} secondaryMenuItems={secondaryMenuItems} />
+      <Sidebar 
+        menuItems={menuItemsWithHrefs} 
+        secondaryMenuItems={secondaryMenuItems}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={setMobileMenuOpen}
+      />
       <MainContent>
+        {isMobile && (
+          <div className={styles.mobileHeader}>
+            <div className={styles.mobileHeaderTitle}>Pricing</div>
+            <MobileMenuButton 
+              isOpen={mobileMenuOpen} 
+              onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+              menuItems={menuItemsWithHrefs}
+              secondaryMenuItems={secondaryMenuItems}
+            />
+          </div>
+        )}
         <div className={styles.settingsContainer}>
           <div className={styles.section}>
             <Typography variant="h1" className={styles.settingsTitle}>

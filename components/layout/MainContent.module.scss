@@ -10,8 +10,9 @@
   padding-bottom: 0;
   
   @include respond-to(md) {
-    padding-left: $spacing-md;
-    padding-right: $spacing-md;
+    padding-left: 0;
+    padding-right: 0;
+    min-height: auto;
   }
 }
 

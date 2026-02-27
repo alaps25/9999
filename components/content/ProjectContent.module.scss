@@ -1,4 +1,5 @@
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .contentHolder {
   width: 100%;
@@ -33,6 +34,22 @@
       flex: 0 0 auto; // Don't grow or shrink, maintain natural size
       min-width: 70%; // Minimum width for image/media
     }
+    
+    // Mobile: Stack vertically like V card (text first, media after)
+    @include respond-to(md) {
+      flex-direction: column;
+      
+      .textContent {
+        width: 100%;
+        flex: none;
+      }
+      
+      .mediaContent {
+        width: 100%;
+        min-width: 100%;
+        flex: none;
+      }
+    }
   }
 }
 
@@ -49,6 +66,7 @@
     color: var(--text-secondary, $gray-700);
     word-wrap: break-word;
     overflow-wrap: break-word;
+    word-break: break-word;
     max-width: 100%;
   }
   

@@ -4,7 +4,8 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 import { useAuth } from '@/contexts/AuthContext'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
+import { Sidebar, MobileMenuButton } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
 import { ProjectCard } from '@/components/content/ProjectCard'
 import { Button } from '@/components/ui/Button'
@@ -30,9 +31,11 @@ interface PageProps {
 function PageContent({ username, slug }: { username: string; slug: string }) {
   const router = useRouter()
   const { user, userData, loading: authLoading } = useAuth()
+  const isMobile = useIsMobile()
   const [portfolioData, setPortfolioData] = React.useState<PortfolioData | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [currentPageId, setCurrentPageId] = React.useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   React.useEffect(() => {
     // Wait for auth to finish loading before running page logic
@@ -206,30 +209,46 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
 
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={menuItemsWithHrefs} secondaryMenuItems={secondaryMenuItems} />
+      <Sidebar 
+        menuItems={menuItemsWithHrefs} 
+        secondaryMenuItems={secondaryMenuItems}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={setMobileMenuOpen}
+      />
       <MainContent>
-        {/* Page Name and Action Buttons Row - Only show if user owns this page */}
+        {/* Page Header Row */}
         {userData?.username === username && (
           <div className={styles.pageHeaderRow}>
             <div className={styles.pageName}>
               {portfolioData.menuItems.find(item => item.id === currentPageId)?.label || 'untitled'}
             </div>
-            <Button
-              variant="medium"
-              size="md"
-              onClick={handleEditClick}
-            >
-              <Edit size={16} />
-              EDIT
-            </Button>
-            <Button
-              variant="medium"
-              size="md"
-              onClick={handleDeletePage}
-            >
-              <Trash2 size={16} />
-              DELETE
-            </Button>
+            {isMobile ? (
+              <MobileMenuButton 
+                isOpen={mobileMenuOpen} 
+                onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+                menuItems={menuItemsWithHrefs}
+                secondaryMenuItems={secondaryMenuItems}
+              />
+            ) : (
+              <>
+                <Button
+                  variant="medium"
+                  size="md"
+                  onClick={handleEditClick}
+                >
+                  <Edit size={16} />
+                  EDIT
+                </Button>
+                <Button
+                  variant="medium"
+                  size="md"
+                  onClick={handleDeletePage}
+                >
+                  <Trash2 size={16} />
+                  DELETE
+                </Button>
+              </>
+            )}
           </div>
         )}
 

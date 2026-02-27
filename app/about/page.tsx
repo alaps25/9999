@@ -2,11 +2,12 @@
 
 import React from 'react'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { Sidebar, MobileMenuButton } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
 import { Typography } from '@/components/ui/Typography'
 import { Accordion, type AccordionItem } from '@/components/ui/Accordion'
 import { useAuth } from '@/contexts/AuthContext'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { getMenuItems } from '@/lib/firebase/queries'
 import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
@@ -15,8 +16,10 @@ import styles from './page.module.scss'
 
 function AboutContent() {
   const { user, userData } = useAuth()
+  const isMobile = useIsMobile()
   const [menuItems, setMenuItems] = React.useState<MenuItem[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   React.useEffect(() => {
     async function loadMenuItems() {
@@ -54,8 +57,24 @@ function AboutContent() {
   if (loading) {
     return (
       <div className={styles.page}>
-        <Sidebar menuItems={[]} secondaryMenuItems={secondaryMenuItems} />
+        <Sidebar 
+          menuItems={[]} 
+          secondaryMenuItems={secondaryMenuItems}
+          mobileMenuOpen={mobileMenuOpen}
+          onMobileMenuToggle={setMobileMenuOpen}
+        />
         <MainContent>
+          {isMobile && (
+            <div className={styles.mobileHeader}>
+              <div className={styles.mobileHeaderTitle}>About</div>
+              <MobileMenuButton 
+                isOpen={mobileMenuOpen} 
+                onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+                menuItems={[]}
+                secondaryMenuItems={secondaryMenuItems}
+              />
+            </div>
+          )}
           <div className={styles.settingsContainer}>
             <div>Loading...</div>
           </div>
@@ -345,8 +364,24 @@ function AboutContent() {
 
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={menuItemsWithHrefs} secondaryMenuItems={secondaryMenuItems} />
+      <Sidebar 
+        menuItems={menuItemsWithHrefs} 
+        secondaryMenuItems={secondaryMenuItems}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={setMobileMenuOpen}
+      />
       <MainContent>
+        {isMobile && (
+          <div className={styles.mobileHeader}>
+            <div className={styles.mobileHeaderTitle}>About</div>
+            <MobileMenuButton 
+              isOpen={mobileMenuOpen} 
+              onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+              menuItems={menuItemsWithHrefs}
+              secondaryMenuItems={secondaryMenuItems}
+            />
+          </div>
+        )}
         <div className={styles.settingsContainer}>
           <Accordion items={accordionItems} />
         </div>
