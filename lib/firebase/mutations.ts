@@ -220,6 +220,37 @@ export async function updateProjectOrders(
 }
 
 /**
+ * Update menu item order for multiple pages
+ * Used for reordering pages in the sidebar
+ */
+export async function updateMenuItemOrders(
+  menuItemOrders: { menuItemId: string; order: number }[],
+  userId: string
+): Promise<void> {
+  if (!isFirebaseConfigured()) {
+    console.log('Firebase not configured, skipping menu item order update')
+    return
+  }
+
+  try {
+    console.log('🔄 Updating menu item orders:', { menuItemOrders, userId })
+    
+    // Update all menu items in parallel
+    await Promise.all(
+      menuItemOrders.map(({ menuItemId, order }) => {
+        const menuItemRef = doc(db!, 'menu', menuItemId)
+        return updateDoc(menuItemRef, { order, userId })
+      })
+    )
+    
+    console.log('✅ Menu item orders updated successfully')
+  } catch (error) {
+    console.error('❌ Error updating menu item orders:', error)
+    throw error
+  }
+}
+
+/**
  * Save user tags to Firestore
  * Creates or updates the userTags document for the user
  */

@@ -3,11 +3,29 @@
 import React, { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@/lib/utils'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { Button } from '@/components/ui/Button'
 import { AddButton } from '@/components/ui/AddButton'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, GripVertical } from 'lucide-react'
 import type { MenuItem } from '@/lib/firebase/types'
 import styles from './Sidebar.module.scss'
 
@@ -18,6 +36,47 @@ export interface SidebarProps {
   onAddItem?: () => void
   mobileMenuOpen?: boolean
   onMobileMenuToggle?: (isOpen: boolean) => void
+  isEditable?: boolean
+  onPageOrderChange?: (newOrder: string[]) => void
+}
+
+/**
+ * Sortable menu item wrapper for drag and drop
+ */
+interface SortableMenuItemProps {
+  id: string
+  children: React.ReactNode
+}
+
+const SortableMenuItem: React.FC<SortableMenuItemProps> = ({ id, children }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id })
+
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+  }
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={cn(styles.sortableMenuItem, isDragging && styles.sortableMenuItemDragging)}
+    >
+      <div className={styles.dragHandle} {...attributes} {...listeners}>
+        <GripVertical size={14} />
+      </div>
+      {children}
+    </div>
+  )
 }
 
 /**
@@ -25,6 +84,7 @@ export interface SidebarProps {
  * Displays menu items with active state highlighting using Button components
  * Supports primary menu items and secondary menu items with a gap between them
  * On mobile, renders drawer menu (controlled by parent via mobileMenuOpen prop)
+ * When isEditable is true, shows drag handles for reordering pages
  */
 export const Sidebar: React.FC<SidebarProps> = ({ 
   menuItems, 
@@ -32,10 +92,39 @@ export const Sidebar: React.FC<SidebarProps> = ({
   className, 
   onAddItem,
   mobileMenuOpen = false,
-  onMobileMenuToggle
+  onMobileMenuToggle,
+  isEditable = false,
+  onPageOrderChange
 }) => {
   const pathname = usePathname()
   const isMobile = useIsMobile()
+
+  // Sensors for drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
+
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = menuItems.findIndex((item) => item.id === active.id)
+      const newIndex = menuItems.findIndex((item) => item.id === over.id)
+      
+      if (oldIndex !== -1 && newIndex !== -1) {
+        const newOrder = arrayMove(menuItems, oldIndex, newIndex).map(item => item.id)
+        onPageOrderChange?.(newOrder)
+      }
+    }
+  }
 
   // Close menu when route changes
   useEffect(() => {
@@ -65,25 +154,56 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   }
 
+  // Render a single menu button
+  const renderMenuButton = (item: typeof menuItems[0], isActive: boolean) => (
+    <Button
+      variant={isActive ? 'high' : 'low'}
+      href={item.href || '#'}
+      asLink
+      stacked
+      className={cn(styles.menuButton, isEditable && styles.menuButtonEditable)}
+      onClick={() => handleItemClick()}
+    >
+      {typeof item.label === 'string' ? item.label : item.label}
+    </Button>
+  )
+
+  // Menu items content (with or without DnD)
+  const menuItemsContent = isEditable ? (
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+      modifiers={[restrictToVerticalAxis]}
+    >
+      <SortableContext
+        items={menuItems.map(item => item.id)}
+        strategy={verticalListSortingStrategy}
+      >
+        {menuItems.map((item) => {
+          const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
+          return (
+            <SortableMenuItem key={item.id} id={item.id}>
+              {renderMenuButton(item, isActive)}
+            </SortableMenuItem>
+          )
+        })}
+      </SortableContext>
+    </DndContext>
+  ) : (
+    menuItems.map((item) => {
+      const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
+      return (
+        <React.Fragment key={item.id}>
+          {renderMenuButton(item, isActive)}
+        </React.Fragment>
+      )
+    })
+  )
+
   const navContent = (
     <nav className={styles.nav}>
-      {menuItems.map((item) => {
-        const isActive = item.isActive !== undefined ? item.isActive : pathname === item.href
-        
-        return (
-          <Button
-            key={item.id}
-            variant={isActive ? 'high' : 'low'}
-            href={item.href || '#'}
-            asLink
-            stacked
-            className={styles.menuButton}
-            onClick={() => handleItemClick()}
-          >
-            {typeof item.label === 'string' ? item.label : item.label}
-          </Button>
-        )
-      })}
+      {menuItemsContent}
       {onAddItem && (
         <AddButton
           onClick={onAddItem}
