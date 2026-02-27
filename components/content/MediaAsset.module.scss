@@ -1,9 +1,14 @@
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .mediaWrapper {
   position: relative;
   width: 100%;
   height: 100%;
+  
+  @include respond-to(md) {
+    min-height: 200px; // Ensure visibility on mobile
+  }
 }
 
 .media {

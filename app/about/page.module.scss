@@ -1,4 +1,5 @@
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .page {
   min-height: 100vh;
@@ -15,10 +16,14 @@
   width: 100%;
   background-color: $accent-secondary;
   
-  @media (max-width: $breakpoint-md) {
+  @include respond-to(md) {
     flex-direction: column;
     gap: 0;
     max-width: 100%;
+    padding-top: 24px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 24px;
   }
 }
 
@@ -59,5 +64,31 @@
   color: $accent-primary;
   margin: 0;
   line-height: 1.6;
+}
+
+// Mobile header row
+.mobileHeader {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  background-color: $accent-secondary;
+  font-family: $font-family-mono;
+  margin-bottom: 0;
+  outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
+}
+
+.mobileHeaderTitle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  font-family: $font-family-sans;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: $accent-primary;
+  padding-left: 24px;
+  height: 32px;
 }
 

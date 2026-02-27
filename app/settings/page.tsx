@@ -4,7 +4,7 @@ import React from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { Sidebar, MobileMenuButton } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -20,6 +20,7 @@ import { applyTheme, setupSystemThemeListener } from '@/lib/utils/theme'
 import { hashPassword } from '@/lib/utils/password'
 import { validateUsername, isUsernameAvailable } from '@/lib/utils/user'
 import { useSubscription } from '@/hooks/useSubscription'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import styles from './page.module.scss'
 import type { MenuItem } from '@/lib/firebase/types'
@@ -28,10 +29,12 @@ function SettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userData, signOut, deleteAccount } = useAuth()
+  const isMobile = useIsMobile()
   const [menuItems, setMenuItems] = React.useState<MenuItem[]>([])
   const [loading, setLoading] = React.useState(true)
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [reauthMessage, setReauthMessage] = React.useState<string | null>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false)
 
   // Check if we're handling email link re-authentication
   React.useEffect(() => {
@@ -533,8 +536,24 @@ function SettingsContent() {
 
   return (
     <div className={styles.page}>
-      <Sidebar menuItems={menuItemsWithHrefs} secondaryMenuItems={secondaryMenuItems} />
+      <Sidebar 
+        menuItems={menuItemsWithHrefs} 
+        secondaryMenuItems={secondaryMenuItems}
+        mobileMenuOpen={mobileMenuOpen}
+        onMobileMenuToggle={setMobileMenuOpen}
+      />
       <MainContent>
+        {isMobile && (
+          <div className={styles.mobileHeader}>
+            <div className={styles.mobileHeaderTitle}>Settings</div>
+            <MobileMenuButton 
+              isOpen={mobileMenuOpen} 
+              onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+              menuItems={menuItemsWithHrefs}
+              secondaryMenuItems={secondaryMenuItems}
+            />
+          </div>
+        )}
         <div className={styles.settingsContainer}>
           {/* Settings Section */}
           <div className={styles.section}>

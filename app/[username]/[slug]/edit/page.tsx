@@ -50,6 +50,7 @@ import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { ArrowRight, Eye, GripVertical, Save } from 'lucide-react'
 import { useStorageUsage } from '@/hooks/useStorageUsage'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { useSubscription } from '@/hooks/useSubscription'
 import { UpgradePrompt } from '@/components/pricing/UpgradePrompt'
 import { StorageUsage } from '@/components/pricing/StorageUsage'
@@ -71,9 +72,17 @@ interface EditPageProps {
 function EditPageContent({ params }: EditPageProps) {
   const router = useRouter()
   const { user, userData } = useAuth()
+  const isMobile = useIsMobile()
   const { storageLimitBytes, plan } = useSubscription()
   const storageUsage = useStorageUsage()
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null)
+  
+  // Redirect to view page if on mobile (edit mode not supported)
+  useEffect(() => {
+    if (isMobile) {
+      router.replace(`/${params.username}/${params.slug}`)
+    }
+  }, [isMobile, params.username, params.slug, router])
   const [loading, setLoading] = useState(true)
   const [currentPageId, setCurrentPageId] = useState<string | null>(null)
   // Track uploading state per project: { projectId: { [imageIndex]: boolean } }

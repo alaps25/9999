@@ -24,4 +24,6 @@
   // Use semantic color token - theme.ts handles light/dark mode values
   // Typography.body already uses --text-secondary by default
   color: var(--text-secondary, $gray-700);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }

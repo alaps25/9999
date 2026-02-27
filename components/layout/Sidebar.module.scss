@@ -13,13 +13,6 @@
   flex-direction: column;
   gap: 0;
   overflow-y: visible;
-  
-  @include respond-to(md) {
-    position: relative;
-    top: 0;
-    width: 100%;
-    height: auto;
-  }
 }
 
 .nav {
@@ -44,5 +37,68 @@
 .menuGap {
   height: 32px; // Height of one button (min-height from Button component)
   width: 100%;
+}
+
+// Mobile menu wrapper - positions dropdown relative to button
+.mobileMenuWrapper {
+  position: relative;
+}
+
+// Hamburger button for mobile (inline in header)
+.hamburgerButton {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  background-color: $accent-secondary;
+  border: none;
+  outline: 1px solid $accent-primary;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  color: $accent-primary;
+  border-radius: var(--border-radius, 0px);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1002;
+  
+  &:active {
+    background-color: $accent-primary;
+    color: $accent-secondary;
+  }
+}
+
+// Blur overlay for mobile menu (iOS style)
+.blurOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background-color: rgba(255, 255, 255, 0.15);
+  z-index: 998;
+}
+
+// Mobile dropdown - positioned under hamburger button
+.mobileDropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+// Menu item in mobile dropdown
+.mobileMenuItem {
+  // No overrides - uses default Button styling
+}
+
+// Divider between primary and secondary menu items
+.menuDivider {
+  height: 8px;
 }
 
