@@ -29,6 +29,46 @@
   justify-content: flex-start !important;
 }
 
+// Menu button in edit mode - slightly smaller to accommodate drag handle
+.menuButtonEditable {
+  // No change needed - handle sits alongside
+}
+
+// Sortable menu item wrapper for drag and drop
+.sortableMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-end;
+  
+  &.sortableMenuItemDragging {
+    cursor: grabbing;
+  }
+}
+
+// Drag handle for reordering pages
+.dragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 32px;
+  cursor: grab;
+  color: var(--text-secondary, $gray-400);
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  flex-shrink: 0;
+  
+  &:hover {
+    opacity: 1;
+    color: $accent-primary;
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+}
+
 .addMenuItemButton {
   margin-top: $spacing-sm;
   align-self: flex-end;

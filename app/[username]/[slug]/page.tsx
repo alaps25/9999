@@ -11,7 +11,6 @@ import { ProjectCard } from '@/components/content/ProjectCard'
 import { Button } from '@/components/ui/Button'
 import { Typography } from '@/components/ui/Typography'
 import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems, getUserSettings } from '@/lib/firebase/queries'
-import { deletePage } from '@/lib/firebase/mutations'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import { getSecondaryMenuItems } from '@/lib/utils/navigation'
 import { getUserIdByUsername } from '@/lib/utils/user'
@@ -19,7 +18,7 @@ import { hasValidSession } from '@/lib/utils/session'
 import { applyTheme } from '@/lib/utils/theme'
 import styles from '../../page.module.scss'
 import type { PortfolioData } from '@/lib/firebase/types'
-import { Edit, Trash2 } from 'lucide-react'
+import { Edit } from 'lucide-react'
 
 interface PageProps {
   params: {
@@ -129,46 +128,6 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
     router.push(`/${username}/${slug}/edit`)
   }
 
-  const handleDeletePage = async () => {
-    if (!currentPageId || !user) return
-
-    // Double confirmation
-    const confirmed = window.confirm(
-      'Are you sure you want to delete this page?\n\n' +
-      'This will permanently delete:\n' +
-      '• This page\n' +
-      '• All projects on this page\n' +
-      '• All images on this page\n\n' +
-      'This action cannot be undone. Type DELETE to confirm.'
-    )
-
-    if (!confirmed) return
-
-    const finalConfirmation = window.prompt(
-      'This will permanently delete this page and all its content. Type "DELETE" to confirm:'
-    )
-
-    if (finalConfirmation !== 'DELETE') {
-      return
-    }
-
-    try {
-      await deletePage(currentPageId, user.uid)
-      
-      // Redirect to first page or home
-      const menuItems = await getMenuItems(user.uid)
-      if (menuItems.length > 0) {
-        const firstPageSlug = menuItems[0].slug || 'page'
-        router.push(`/${username}/${firstPageSlug}`)
-      } else {
-        router.push(`/${username}/page`)
-      }
-    } catch (error) {
-      console.error('Error deleting page:', error)
-      alert('Failed to delete page. Please try again.')
-    }
-  }
-
   const handleShareClick = async () => {
     const portfolioUrl = getPortfolioUrl(username)
     await shareUrl(portfolioUrl, `Check out ${username}'s portfolio`)
@@ -230,24 +189,14 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
                 secondaryMenuItems={secondaryMenuItems}
               />
             ) : (
-              <>
-                <Button
-                  variant="medium"
-                  size="md"
-                  onClick={handleEditClick}
-                >
-                  <Edit size={16} />
-                  EDIT
-                </Button>
-                <Button
-                  variant="medium"
-                  size="md"
-                  onClick={handleDeletePage}
-                >
-                  <Trash2 size={16} />
-                  DELETE
-                </Button>
-              </>
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleEditClick}
+              >
+                <Edit size={16} />
+                EDIT
+              </Button>
             )}
           </div>
         )}

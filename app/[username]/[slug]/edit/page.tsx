@@ -41,6 +41,8 @@ import {
   updateProjectSlides,
   deleteProject,
   updateProjectOrders,
+  updateMenuItemOrders,
+  deletePage,
 } from '@/lib/firebase/mutations'
 import { uploadFiles, deleteFile, isBlobUrl } from '@/lib/firebase/storage'
 import type { PortfolioData, Project, MenuItem, Slide } from '@/lib/firebase/types'
@@ -48,7 +50,7 @@ import { generateSlug } from '@/lib/utils/slug'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Eye, GripVertical, Save } from 'lucide-react'
+import { ArrowRight, Eye, GripVertical, Rows3, Save, Trash2 } from 'lucide-react'
 import { useStorageUsage } from '@/hooks/useStorageUsage'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { useSubscription } from '@/hooks/useSubscription'
@@ -183,6 +185,78 @@ function EditPageContent({ params }: EditPageProps) {
   const handleCancelReorder = () => {
     setIsReorderMode(false)
     setReorderedSections([])
+  }
+
+  // Handle page order change from sidebar drag and drop
+  const handlePageOrderChange = async (newOrder: string[]) => {
+    if (!user || !portfolioData) return
+
+    try {
+      // Calculate new order values based on position
+      const menuItemOrders = newOrder.map((menuItemId, index) => ({
+        menuItemId,
+        order: index,
+      }))
+
+      // Update menu item orders in Firebase
+      await updateMenuItemOrders(menuItemOrders, user.uid)
+
+      // Update local state to reflect new order
+      const reorderedMenuItems = newOrder
+        .map(id => portfolioData.menuItems.find(item => item.id === id))
+        .filter((item): item is MenuItem => item !== undefined)
+
+      setPortfolioData({
+        ...portfolioData,
+        menuItems: reorderedMenuItems,
+      })
+
+      console.log('✅ Page order updated successfully')
+    } catch (error) {
+      console.error('Error updating page order:', error)
+    }
+  }
+
+  // Handle page deletion
+  const handleDeletePage = async () => {
+    if (!currentPageId || !user) return
+
+    // Double confirmation
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this page?\n\n' +
+      'This will permanently delete:\n' +
+      '• All projects on this page\n' +
+      '• All images on this page\n\n' +
+      'This action cannot be undone.'
+    )
+
+    if (!confirmed) return
+
+    const finalConfirmation = window.prompt(
+      'This will permanently delete this page and all its content. Type "DELETE" to confirm:'
+    )
+
+    if (finalConfirmation !== 'DELETE') {
+      return
+    }
+
+    try {
+      await deletePage(currentPageId, user.uid)
+      // Navigate to the first available page or home
+      if (portfolioData && portfolioData.menuItems.length > 1) {
+        const remainingPages = portfolioData.menuItems.filter(item => item.id !== currentPageId)
+        if (remainingPages.length > 0) {
+          router.push(`/${username}/${remainingPages[0].slug || 'page'}`)
+        } else {
+          router.push(`/${username}`)
+        }
+      } else {
+        router.push(`/${username}`)
+      }
+    } catch (error) {
+      console.error('Error deleting page:', error)
+      alert('Failed to delete page. Please try again.')
+    }
   }
 
   useEffect(() => {
@@ -1702,6 +1776,8 @@ function EditPageContent({ params }: EditPageProps) {
           menuItems={menuItemsWithHrefs}
           secondaryMenuItems={secondaryMenuItems}
           onAddItem={handleAddMenuItem}
+          isEditable={true}
+          onPageOrderChange={handlePageOrderChange}
         />
       )}
       <MainContent>
@@ -1736,14 +1812,22 @@ function EditPageContent({ params }: EditPageProps) {
                 onChange={(e) => handlePageNameInputChange(e.target.value)}
                 onBlur={handlePageNameBlur}
                 inputSize="md"
-                style={{ flex: 1 }}
+                style={{ flex: 1, textTransform: 'uppercase' }}
               />
+              <Button
+                variant="medium"
+                size="md"
+                onClick={handleDeletePage}
+              >
+                <Trash2 size={16} />
+                DELETE
+              </Button>
               <Button
                 variant="medium"
                 size="md"
                 onClick={handleEnterReorderMode}
               >
-                <GripVertical size={16} />
+                <Rows3 size={16} />
                 REORDER
               </Button>
               <Button
