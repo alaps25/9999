@@ -16,12 +16,25 @@ A modern, fast, and customizable portfolio website builder built with Next.js an
 - **Real-time Preview**: See changes instantly as you customize
 
 ### 📝 **Content Management**
-- **Drag-and-Drop Editing**: Intuitive drag-and-drop interface for organizing projects
+- **Multiple Card Types**: 
+  - **V-Card**: Vertical layout with title, description, tags, and media
+  - **H-Card**: Horizontal layout for wider content presentation
+  - **Media Card**: Image/video-only cards without text
+  - **Slides Card**: Multi-slide carousel with per-slide descriptions
+  - **Big Text Card**: Large typography for headings and statements
+- **Rich Text Descriptions**: Format descriptions with bullet points, bold, and italic (TipTap editor)
+- **Drag-and-Drop Cards**: Reorder content cards within a page
+- **Drag-and-Drop Pages**: Reorder pages in the sidebar navigation
 - **Multiple Page Support**: Create unlimited pages with custom slugs
-- **Rich Project Cards**: Showcase projects with images, descriptions, tags, and metadata
-- **Flexible Content Layouts**: Toggle visibility of title, description, images, tags, and more
+- **Media Upload**: Drag-drop, paste (Cmd+V), or browse to add images/videos
 - **Media Carousels**: Beautiful image carousels with navigation controls
 - **Tag System**: Organize projects with custom tags
+
+### 📱 **Mobile Optimization**
+- **View-Only Mobile**: Clean viewing experience on mobile devices
+- **Hamburger Menu**: Animated fly-out navigation menu on mobile
+- **Responsive Cards**: H-cards stack vertically on mobile (text first, media after)
+- **Touch-Friendly**: Larger touch targets for mobile interaction
 
 ### 🔐 **Authentication & Security**
 - **Email Authentication**: Passwordless email link authentication
@@ -29,12 +42,14 @@ A modern, fast, and customizable portfolio website builder built with Next.js an
 - **Protected Routes**: Secure edit pages with authentication
 - **Private Portfolios**: Password-protected portfolio pages
 - **Session Management**: Secure session handling
+- **XSS Protection**: Sanitized HTML content with DOMPurify
 
 ### 👤 **User Management**
 - **Custom Usernames**: Choose your own unique username (3-20 characters)
 - **Real-time Availability Check**: Instant feedback on username availability
 - **Username Validation**: Format validation with reserved word protection
 - **Profile Settings**: Comprehensive settings page for account management
+- **Storage Management**: Track and manage media storage usage
 
 ### 🚀 **Performance & UX**
 - **Fast Loading**: Optimized with Next.js server-side rendering
@@ -42,6 +57,7 @@ A modern, fast, and customizable portfolio website builder built with Next.js an
 - **Responsive Design**: Works beautifully on all devices
 - **Smooth Animations**: Polished animations with Framer Motion
 - **Debounced Inputs**: Optimized form inputs with debouncing
+- **Smart Placeholder Handling**: Clean placeholder hints that auto-clear on focus
 
 ### 🎯 **Developer Experience**
 - **TypeScript**: Full type safety throughout the codebase
@@ -63,6 +79,8 @@ A modern, fast, and customizable portfolio website builder built with Next.js an
   - [Framer Motion](https://www.framer.com/motion/) (Animations)
   - [Lucide React](https://lucide.dev/) (Icons)
   - [@dnd-kit](https://dndkit.com/) (Drag and Drop)
+  - [TipTap](https://tiptap.dev/) (Rich Text Editor)
+  - [DOMPurify](https://github.com/cure53/DOMPurify) (HTML Sanitization)
 - **Deployment**: Vercel-ready
 
 ## 📋 Prerequisites
@@ -127,6 +145,7 @@ Open [http://localhost:9999](http://localhost:9999) to see your portfolio!
 - **[Firebase Setup](./FIREBASE_SETUP.md)** - Detailed Firebase configuration
 - **[Firestore Security Rules](./FIRESTORE_SECURITY_RULES.md)** - Security configuration
 - **[Testing Guide](./TESTING.md)** - Testing with mock data
+- **[Backlog](./BACKLOG.md)** - Planned features and improvements
 
 ## 🏗️ Project Structure
 
@@ -225,6 +244,7 @@ For support, email support@example.com or open an issue in the GitHub repository
 - [Live Demo](https://your-demo-url.com)
 - [Documentation](./QUICKSTART.md)
 - [Firebase Setup Guide](./FIREBASE_SETUP.md)
+- [Backlog / Roadmap](./BACKLOG.md)
 - [Report a Bug](https://github.com/yourusername/wires/issues)
 
 ---

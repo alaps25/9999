@@ -514,9 +514,9 @@ function EditPageContent({ params }: EditPageProps) {
       case 'v-card':
         return {
           ...baseProject,
-          title: 'Title',
-          description: 'Description',
-          tags: [], // No tags by default
+          title: '',
+          description: '',
+          tags: [],
           content: {
             showTitle: true,
             showDescription: true,
@@ -533,9 +533,9 @@ function EditPageContent({ params }: EditPageProps) {
       case 'h-card':
         return {
           ...baseProject,
-          title: 'Title',
-          description: 'Description',
-          tags: [], // No tags by default
+          title: '',
+          description: '',
+          tags: [],
           content: {
             showTitle: true,
             showDescription: true,
@@ -571,9 +571,9 @@ function EditPageContent({ params }: EditPageProps) {
       case 'slides':
         return {
           ...baseProject,
-          title: 'Title',
-          description: 'Description',
-          tags: [], // No tags by default
+          title: '',
+          description: '',
+          tags: [],
           content: {
             showTitle: true,
             showDescription: true,
@@ -588,7 +588,7 @@ function EditPageContent({ params }: EditPageProps) {
             {
               id: `slide-${Date.now()}`,
               title: '',
-              description: 'Slide description',
+              description: '',
               image: '',
             },
           ],
@@ -597,7 +597,7 @@ function EditPageContent({ params }: EditPageProps) {
       case 'big-text':
         return {
           ...baseProject,
-          title: 'Title',
+          title: '',
           description: '',
           tags: [],
           content: {
@@ -615,9 +615,9 @@ function EditPageContent({ params }: EditPageProps) {
       default:
         return {
           ...baseProject,
-          title: 'Title',
-          description: 'Description',
-          tags: [], // No tags by default
+          title: '',
+          description: '',
+          tags: [],
           content: {
             showTitle: true,
             showDescription: true,
@@ -1351,7 +1351,7 @@ function EditPageContent({ params }: EditPageProps) {
     const newSlide: Slide = {
       id: `slide-${Date.now()}`,
       image: '',
-      description: 'Slide description',
+      description: '',
     }
     
     setPortfolioData((currentData) => {
