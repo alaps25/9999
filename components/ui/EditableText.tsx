@@ -40,17 +40,19 @@ export const EditableText: React.FC<EditableTextProps> = ({
 
   // Update content when value changes externally (but not while editing)
   useEffect(() => {
-    if (!isEditing && contentRef.current && contentRef.current.textContent !== value) {
-      // If value matches placeholder, show it as placeholder (will be styled differently)
-      contentRef.current.textContent = value
-      setCurrentText(value)
+    if (!isEditing && contentRef.current) {
+      const displayValue = value || placeholder
+      if (contentRef.current.textContent !== displayValue) {
+        contentRef.current.textContent = displayValue
+        setCurrentText(value)
+      }
     }
   }, [value, isEditing, placeholder])
 
   const handleFocus = () => {
     setIsEditing(true)
-    // If value matches placeholder, clear it on focus so user can type immediately
-    if (contentRef.current && value === placeholder) {
+    // If value is empty, clear any placeholder display
+    if (contentRef.current && !value) {
       contentRef.current.textContent = ''
       setCurrentText('')
     }
@@ -59,15 +61,14 @@ export const EditableText: React.FC<EditableTextProps> = ({
   const handleBlur = () => {
     setIsEditing(false)
     const finalValue = contentRef.current?.textContent?.trim() || ''
-    // If empty after blur, restore placeholder value so it shows as placeholder again
-    const valueToSave = finalValue === '' ? placeholder : finalValue
-    setCurrentText(valueToSave)
-    if (valueToSave !== value) {
-      onChange(valueToSave)
+    // Save whatever user typed (empty string if cleared)
+    setCurrentText(finalValue)
+    if (finalValue !== value) {
+      onChange(finalValue)
     }
-    // Update the displayed text to match the saved value
+    // Update the displayed text
     if (contentRef.current) {
-      contentRef.current.textContent = valueToSave
+      contentRef.current.textContent = finalValue
     }
   }
 
@@ -120,13 +121,13 @@ export const EditableText: React.FC<EditableTextProps> = ({
         variant && styles[variant],
         inheritColor && styles.inheritColor,
         isEditing && styles.editing,
-        // Show placeholder styling only when current text matches placeholder (not while typing)
-        currentText === placeholder && !isEditing && styles.placeholder,
+        // Show placeholder styling when empty (not while editing)
+        !currentText && !isEditing && styles.placeholder,
         className
       )}
       data-placeholder={placeholder}
     >
-      {value}
+      {value || (!isEditing ? placeholder : '')}
     </Component>
   )
 }

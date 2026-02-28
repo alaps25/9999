@@ -1,12 +1,92 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import { Typography } from '@/components/ui/Typography'
 import { EditableText } from '@/components/ui/EditableText'
+import { RichTextEditor } from '@/components/ui/RichTextEditor'
+import { RichTextDisplay } from '@/components/ui/RichTextDisplay'
 import { TagInput } from '@/components/ui/TagInput'
 import { Tags } from './Tags'
 import { MediaCarousel } from './MediaCarousel'
 import type { Project } from '@/lib/firebase/types'
 import styles from './ProjectContent.module.scss'
+
+/**
+ * Check if description has actual content (not just empty HTML)
+ * Handles plain text and HTML content from RichTextEditor
+ */
+function hasDescriptionContent(desc: string | undefined): boolean {
+  if (!desc) return false
+  const trimmed = desc.trim()
+  if (!trimmed || trimmed === '<p></p>' || trimmed === '<p><br></p>') return false
+  // Strip HTML tags and check if any text remains
+  const textOnly = trimmed.replace(/<[^>]*>/g, '').trim()
+  return textOnly.length > 0
+}
+
+/**
+ * Check if singleImage field has actual media content
+ * Handles both string URLs and arrays of URLs
+ */
+function hasSingleImageContent(singleImage: string | string[] | undefined): boolean {
+  if (!singleImage) return false
+  if (typeof singleImage === 'string') return singleImage.length > 0
+  if (Array.isArray(singleImage)) return singleImage.length > 0
+  return false
+}
+
+/**
+ * DescriptionField - Extracted component to simplify rendering logic
+ * Handles edit/view mode and bio/project variants
+ */
+interface DescriptionFieldProps {
+  value: string
+  isEditable: boolean
+  isBioVariant: boolean
+  hasProject: boolean
+  onFieldChange?: (field: keyof Project, value: string | string[]) => void
+  onBioChange?: (value: string) => void
+}
+
+const DescriptionField: React.FC<DescriptionFieldProps> = ({
+  value,
+  isEditable,
+  isBioVariant,
+  hasProject,
+  onFieldChange,
+  onBioChange,
+}) => {
+  const descriptionClass = isBioVariant 
+    ? cn(styles.description, styles.bioDescription)
+    : styles.description
+
+  // Edit mode - show RichTextEditor
+  if (isEditable && (isBioVariant || hasProject)) {
+    const handleChange = isBioVariant
+      ? (newValue: string) => onBioChange?.(newValue)
+      : (newValue: string) => onFieldChange?.('description', newValue)
+
+    return (
+      <RichTextEditor
+        value={value}
+        onChange={handleChange}
+        placeholder="Description"
+        className={descriptionClass}
+      />
+    )
+  }
+
+  // View mode - show RichTextDisplay (only if has content)
+  if (hasDescriptionContent(value)) {
+    return (
+      <RichTextDisplay
+        content={value}
+        className={descriptionClass}
+      />
+    )
+  }
+
+  return null
+}
 
 export interface ProjectContentProps {
   project?: Project
@@ -95,18 +175,28 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
                     !contentConfig.showTags &&
                     variant !== 'bio'
 
-  // Check if there's any media content to show (including placeholders)
-  // Media cards always show placeholder, so they always have "content"
+  // Memoize media content check for performance
+  const hasSingleImageMedia = useMemo(
+    () => hasSingleImageContent(project?.singleImage),
+    [project?.singleImage]
+  )
+
+  // Check if there's any media content to show
+  // In edit mode: show placeholder even if empty (so user can add media)
+  // In view mode: only show if there's actual media
   const hasMediaContent = 
-    contentConfig.showSingleImage || // Always true for Media cards, even if empty
+    (contentConfig.showSingleImage && (isEditable || hasSingleImageMedia)) ||
     (contentConfig.showSlides && project?.slides && project.slides.length > 0) ||
     (contentConfig.showPhotoCarousel && displayImages.length > 0)
 
   // Check if there's any text content to show
   const hasTextContent = 
     (contentConfig.showTitle && displayTitle) ||
-    (contentConfig.showDescription && displayDescription) ||
+    (contentConfig.showDescription && hasDescriptionContent(displayDescription)) ||
     (contentConfig.showTags && displayTags.length > 0)
+  
+  // In edit mode, always show text content section so user can add content
+  const shouldShowTextContent = hasTextContent || (isEditable && (contentConfig.showTitle || contentConfig.showDescription || contentConfig.showTags))
 
   return (
     <div className={cn(
@@ -115,76 +205,53 @@ export const ProjectContent: React.FC<ProjectContentProps> = ({
       !hasMediaContent && styles.noMediaGap,
       className
     )}>
-      {/* Element 1: Text Content (Title, Description, Metadata) - Only render if there's content */}
-      {hasTextContent && (
+      {/* Element 1: Text Content (Title, Description, Metadata) - Only render if there's content or in edit mode */}
+      {shouldShowTextContent && (
         <div className={styles.textContent}>
         {/* Title */}
-        {contentConfig.showTitle && displayTitle && (
+        {contentConfig.showTitle && (isEditable || displayTitle) && (
           isEditable && project ? (
             <EditableText
-              value={displayTitle}
+              value={displayTitle || ''}
               onChange={(value) => onFieldChange?.('title', value)}
               variant="h3"
               className={cn("font-bold", isBigText && styles.bigTextTitle)}
               as="div"
               placeholder="Title"
             />
-          ) : (
+          ) : displayTitle ? (
           <Typography variant="h3" className={cn("font-bold", isBigText && styles.bigTextTitle)}>
             {displayTitle}
           </Typography>
-          )
+          ) : null
         )}
 
-        {/* Description */}
-        {contentConfig.showDescription && displayDescription && (
-          variant === 'bio' ? (
-            isEditable ? (
-              <EditableText
-                value={displayDescription}
-                onChange={(value) => onBioChange?.(value)}
-                variant="body"
-                className={cn(styles.description, styles.bioDescription)}
-                as="div"
-                placeholder="Description"
-              />
-            ) : (
-              <Typography variant="body" className={cn(styles.description, styles.bioDescription)}>
-                {displayDescription}
-              </Typography>
-            )
-          ) : (
-            isEditable && project ? (
-              <EditableText
-                value={displayDescription}
-                onChange={(value) => onFieldChange?.('description', value)}
-                variant="body"
-                className={styles.description}
-                as="div"
-                placeholder="Description"
-              />
-            ) : (
-              <Typography variant="body" className={styles.description}>
-                {displayDescription}
-              </Typography>
-            )
-          )
+        {/* Description - Using RichTextEditor for formatting support */}
+        {contentConfig.showDescription && (isEditable || hasDescriptionContent(displayDescription)) && (
+          <DescriptionField
+            value={displayDescription || ''}
+            isEditable={isEditable}
+            isBioVariant={variant === 'bio'}
+            hasProject={!!project}
+            onFieldChange={onFieldChange}
+            onBioChange={onBioChange}
+          />
         )}
 
-        {/* Tags */}
+        {/* Tags - Only render wrapper when there's content */}
         {contentConfig.showTags && (
-          <div className={styles.tags}>
-            {isEditable && project ? (
+          isEditable && project ? (
+            <div className={styles.tags}>
               <TagInput
                 tags={displayTags}
                 onChange={(tags) => onFieldChange?.('tags', tags)}
               />
-            ) : (
-              displayTags.length > 0 && (
-                <Tags tags={displayTags} />
-              )
-            )}
-          </div>
+            </div>
+          ) : displayTags.length > 0 ? (
+            <div className={styles.tags}>
+              <Tags tags={displayTags} />
+            </div>
+          ) : null
         )}
         </div>
       )}

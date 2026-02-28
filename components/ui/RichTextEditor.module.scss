@@ -1,0 +1,168 @@
+@import '../../styles/variables';
+
+.richTextEditor {
+  width: 100%;
+  
+  &.disabled {
+    pointer-events: none;
+    opacity: 0.7;
+  }
+  
+  &.loading {
+    min-height: 1.5em;
+  }
+}
+
+.placeholder {
+  color: var(--text-secondary, $gray-400);
+  opacity: 0.6;
+}
+
+.editor {
+  outline: none;
+  width: 100%;
+  
+  // Body variant (default)
+  &.body {
+    font-size: 10px;
+    line-height: 1.5;
+    font-family: $font-family-mono;
+    color: var(--text-secondary, $gray-700);
+  }
+  
+  // Caption variant
+  &.caption {
+    font-size: 9px;
+    line-height: 1.4;
+    font-family: $font-family-mono;
+    color: var(--text-secondary, $gray-600);
+  }
+  
+  // Paragraph styling
+  p {
+    margin: 0;
+    
+    & + p {
+      margin-top: 0.5em;
+    }
+  }
+  
+  // Bold
+  strong {
+    font-weight: 600;
+  }
+  
+  // Italic
+  em {
+    font-style: italic;
+  }
+  
+  // Bullet list styling - custom bullets for precise control
+  ul {
+    margin: 0.5em 0;
+    padding-left: 0;
+    list-style: none;
+    
+    li {
+      margin: 0.25em 0;
+      padding-left: 1em;
+      position: relative;
+      
+      &::before {
+        content: '•';
+        position: absolute;
+        left: 0;
+        color: inherit;
+      }
+      
+      p {
+        margin: 0;
+      }
+    }
+    
+    // Nested lists (level 2)
+    ul {
+      margin: 0.25em 0;
+      
+      li::before {
+        content: '◦';
+      }
+      
+      // Nested lists (level 3)
+      ul li::before {
+        content: '▪';
+        font-size: 0.7em;
+        top: 0.25em;
+      }
+    }
+  }
+  
+  // Ordered list styling - custom numbers for precise control
+  ol {
+    margin: 0.5em 0;
+    padding-left: 0;
+    list-style: none;
+    counter-reset: list-counter;
+    
+    li {
+      margin: 0.25em 0;
+      padding-left: 1.5em;
+      position: relative;
+      counter-increment: list-counter;
+      
+      &::before {
+        content: counter(list-counter) '.';
+        position: absolute;
+        left: 0;
+        color: inherit;
+      }
+      
+      p {
+        margin: 0;
+      }
+    }
+  }
+  
+  // Placeholder styling
+  &.isEmpty::before {
+    content: attr(data-placeholder);
+    color: var(--text-secondary, $gray-400);
+    opacity: 0.6;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+}
+
+// Placeholder styling for TipTap
+.isEmpty {
+  &:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--text-secondary, $gray-400);
+    opacity: 0.6;
+    pointer-events: none;
+    float: left;
+    height: 0;
+  }
+}
+
+// ProseMirror specific styles - scoped under richTextEditor
+.richTextEditor {
+  :global(.ProseMirror) {
+    outline: none;
+    
+    &:focus {
+      outline: none;
+    }
+    
+    // Placeholder
+    > .is-editor-empty:first-child::before {
+      content: attr(data-placeholder);
+      color: var(--text-secondary, $gray-400);
+      opacity: 0.6;
+      pointer-events: none;
+      float: left;
+      height: 0;
+    }
+  }
+}
