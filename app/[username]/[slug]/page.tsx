@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button'
 import { Typography } from '@/components/ui/Typography'
 import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems, getUserSettings } from '@/lib/firebase/queries'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
-import { getSecondaryMenuItems } from '@/lib/utils/navigation'
+import { getSecondaryMenuItems, getMenuItemsWithSearch } from '@/lib/utils/navigation'
 import { getUserIdByUsername } from '@/lib/utils/user'
 import { hasValidSession } from '@/lib/utils/session'
 import { applyTheme } from '@/lib/utils/theme'
@@ -143,10 +143,18 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
   // Check if there's any content
   const hasContent = !!(portfolioData.bio?.text || portfolioData.sections.length > 0)
 
-  // Generate hrefs for menu items using username
+  // Generate hrefs for menu items using username, with Search at the bottom
   // Ensure only one item is active - use the first matching item by slug
   let foundActive = false
-  const menuItemsWithHrefs = portfolioData.menuItems.map(item => {
+  const baseMenuItems = userData?.username === username
+    ? getMenuItemsWithSearch(portfolioData.menuItems, username)
+    : portfolioData.menuItems.map(item => ({
+        ...item,
+        href: `/${username}/${item.slug || 'page'}`,
+        isActive: false
+      }))
+  
+  const menuItemsWithHrefs = baseMenuItems.map(item => {
     const matchesSlug = item.slug === slug
     const shouldBeActive = matchesSlug && !foundActive
     if (shouldBeActive) {
@@ -154,7 +162,6 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
     }
     return {
       ...item,
-      href: `/${username}/${item.slug || 'page'}`,
       isActive: shouldBeActive,
     }
   })

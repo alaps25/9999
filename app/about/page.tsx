@@ -9,7 +9,7 @@ import { Accordion, type AccordionItem } from '@/components/ui/Accordion'
 import { useAuth } from '@/contexts/AuthContext'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { getMenuItems } from '@/lib/firebase/queries'
-import { getSecondaryMenuItems } from '@/lib/utils/navigation'
+import { getSecondaryMenuItems, getMenuItemsWithSearch } from '@/lib/utils/navigation'
 import { getPortfolioUrl, shareUrl } from '@/lib/utils/share'
 import type { MenuItem } from '@/lib/firebase/types'
 import styles from './page.module.scss'
@@ -45,11 +45,14 @@ function AboutContent() {
     await shareUrl(portfolioUrl, `Check out ${userData.username}'s portfolio`)
   }
 
-  // Generate hrefs for menu items using username
-  const menuItemsWithHrefs = menuItems.map(item => ({
-    ...item,
-    href: userData?.username ? `/${userData.username}/${item.slug || 'page'}` : '#',
-  }))
+  // Generate hrefs for menu items using username, with Search at the bottom
+  const menuItemsWithHrefs = userData?.username
+    ? getMenuItemsWithSearch(menuItems, userData.username)
+    : menuItems.map(item => ({
+        ...item,
+        href: '#',
+        isActive: false
+      }))
 
   // Secondary menu items
   const secondaryMenuItems = getSecondaryMenuItems(handleShareClick, '/about')

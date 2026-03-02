@@ -92,8 +92,13 @@
 // Input wrapper for icon support
 .inputWrapper {
   position: relative;
-  display: inline-block;
+  display: inline-flex;
   width: auto;
+  
+  // When input inside has fullWidth, wrapper should also expand
+  &:has(.fullWidth) {
+    width: 100%;
+  }
 }
 
 // Left icon styling

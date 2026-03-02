@@ -1,0 +1,26 @@
+@import '../../../styles/variables';
+
+.searchInputWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.resultItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.pageLabel {
+  font-family: $font-family-sans;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: $gray-600;
+  padding: 8px 24px;
+  background-color: $accent-secondary;
+  outline: 1px solid $accent-primary;
+  border-radius: var(--border-radius, 0px);
+  margin-bottom: 1px;
+}

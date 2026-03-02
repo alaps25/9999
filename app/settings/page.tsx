@@ -21,7 +21,7 @@ import { hashPassword } from '@/lib/utils/password'
 import { validateUsername, isUsernameAvailable } from '@/lib/utils/user'
 import { useSubscription } from '@/hooks/useSubscription'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
-import { getSecondaryMenuItems } from '@/lib/utils/navigation'
+import { getSecondaryMenuItems, getMenuItemsWithSearch } from '@/lib/utils/navigation'
 import styles from './page.module.scss'
 import type { MenuItem } from '@/lib/firebase/types'
 
@@ -525,11 +525,14 @@ function SettingsContent() {
     return <div>Loading...</div>
   }
 
-  // Generate hrefs for menu items using username
-  const menuItemsWithHrefs = menuItems.map(item => ({
-    ...item,
-    href: userData?.username ? `/${userData.username}/${item.slug || 'page'}` : '#',
-  }))
+  // Generate hrefs for menu items using username, with Search at the bottom
+  const menuItemsWithHrefs = userData?.username
+    ? getMenuItemsWithSearch(menuItems, userData.username)
+    : menuItems.map(item => ({
+        ...item,
+        href: '#',
+        isActive: false
+      }))
 
   // Secondary menu items
   const secondaryMenuItems = getSecondaryMenuItems(handleShareClick, '/settings')
