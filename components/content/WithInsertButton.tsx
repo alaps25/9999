@@ -14,6 +14,8 @@ export interface WithInsertButtonProps {
   onInsertAbove?: (cardType?: string) => void // Accept optional cardType parameter
   onInsertBelow?: (cardType?: string) => void // Accept optional cardType parameter
   onDelete?: () => void // Callback for delete button
+  onMove?: (targetPageId: string) => void // Callback for move button
+  moveOptions?: DropdownOption[] // Pages to move card to
   className?: string
   hasCardAbove?: boolean // If true, there's a card above this one
   hasCardBelow?: boolean // If true, suppress bottom button for middle cards (show top instead)
@@ -36,6 +38,8 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
   onInsertAbove,
   onInsertBelow,
   onDelete,
+  onMove,
+  moveOptions = [],
   className,
   hasCardAbove = false,
   hasCardBelow = false,
@@ -69,6 +73,8 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
         placeholder={placeholder}
         onInsert={onInsertAbove}
         onDelete={onDelete}
+        onMove={onMove}
+        moveOptions={moveOptions}
         position="top"
         onMouseEnter={() => handleButtonMouseEnter('top')}
         onMouseLeave={handleButtonMouseLeave}
@@ -91,6 +97,8 @@ export const WithInsertButton: React.FC<WithInsertButtonProps> = ({
         placeholder={placeholder}
         onInsert={onInsertBelow}
         onDelete={onDelete}
+        onMove={onMove}
+        moveOptions={moveOptions}
         position="bottom"
         onMouseEnter={() => handleButtonMouseEnter('bottom')}
         onMouseLeave={handleButtonMouseLeave}

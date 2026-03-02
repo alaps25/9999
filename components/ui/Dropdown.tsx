@@ -23,6 +23,7 @@ export interface DropdownProps {
   onSelect?: (value: string) => void
   disabled?: boolean
   alwaysShowPlaceholder?: boolean // If true, always show placeholder instead of selected value
+  leftIcon?: React.ReactNode // Optional icon to display on the left side of the label
 }
 
 /**
@@ -39,6 +40,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
   onSelect,
   disabled = false,
   alwaysShowPlaceholder = false,
+  leftIcon,
 }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [selectedValue, setSelectedValue] = useState(value)
@@ -132,6 +134,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
       >
+        {leftIcon && <span className={styles.leftIcon}>{leftIcon}</span>}
         <span className={styles.label}>{displayLabel}</span>
         <ChevronDown 
           size={16} 

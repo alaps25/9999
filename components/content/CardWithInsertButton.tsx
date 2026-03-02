@@ -26,6 +26,8 @@ export interface CardWithInsertButtonProps {
   onInsertAbove?: (cardType?: string) => void // Accept optional cardType parameter
   onInsertBelow?: (cardType?: string) => void // Accept optional cardType parameter
   onDelete?: () => void // Callback for delete button
+  onMove?: (targetPageId: string) => void // Callback for move button
+  moveOptions?: DropdownOption[] // Pages to move card to
   insertOptions?: DropdownOption[]
   hasCardAbove?: boolean
   hasCardBelow?: boolean
@@ -56,6 +58,8 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
   onInsertAbove,
   onInsertBelow,
   onDelete,
+  onMove,
+  moveOptions = [],
   insertOptions = [],
   hasCardAbove = false,
   hasCardBelow = false,
@@ -69,6 +73,8 @@ export const CardWithInsertButton: React.FC<CardWithInsertButtonProps> = ({
       onInsertAbove={onInsertAbove}
       onInsertBelow={onInsertBelow}
       onDelete={onDelete}
+      onMove={onMove}
+      moveOptions={moveOptions}
       hasCardAbove={hasCardAbove}
       hasCardBelow={hasCardBelow}
     >

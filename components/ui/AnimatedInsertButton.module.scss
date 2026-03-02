@@ -10,7 +10,10 @@
   margin-top: 1px; // Prevents outline overlap creating double-thick borders with card above
   margin-bottom: 1px; // Prevents outline overlap creating double-thick borders with card below
   display: flex;
-  justify-content: space-between;
   align-items: center; // Ensures both buttons align to center and have same height
+}
+
+.spacer {
+  flex: 1; // Takes up remaining space, pushing Move+Delete to the right
 }
 
