@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -98,6 +98,17 @@ function EditPageContent({ params }: EditPageProps) {
   const [showStorageWarning, setShowStorageWarning] = useState(false)
   // Storage limit dialog state
   const [showStorageLimitDialog, setShowStorageLimitDialog] = useState(false)
+
+  // Generate move options from menu items (excluding current page)
+  const moveOptions = useMemo(() => {
+    if (!portfolioData?.menuItems || !currentPageId) return []
+    return portfolioData.menuItems
+      .filter(item => item.id !== currentPageId)
+      .map(item => ({
+        label: item.label,
+        value: item.id,
+      }))
+  }, [portfolioData?.menuItems, currentPageId])
 
   // Extract page slug and username from params
   const pageSlug = params.slug
@@ -901,6 +912,33 @@ function EditPageContent({ params }: EditPageProps) {
       await deleteProject(projectId, user.uid)
     } catch (error) {
       console.error('Failed to delete project:', error)
+    }
+  }
+
+  // Handler for moving a card to another page
+  const handleMoveCard = async (projectId: string, targetPageId: string) => {
+    if (!user || !currentPageId) return
+    
+    // Don't move to the same page
+    if (targetPageId === currentPageId) return
+    
+    // Update project's pageId and order in Firestore
+    // Set order to Date.now() so the card appears at the bottom of the target page
+    try {
+      await updateProject(projectId, { pageId: targetPageId, order: Date.now() }, user.uid)
+      
+      // Remove from local state (card is now on a different page)
+      setPortfolioData((currentData) => {
+        if (!currentData) return currentData
+        return {
+          ...currentData,
+          sections: currentData.sections.filter(
+            s => !(s.type === 'project' && s.project?.id === projectId)
+          ),
+        }
+      })
+    } catch (error) {
+      console.error('Failed to move project:', error)
     }
   }
 
@@ -2113,6 +2151,8 @@ function EditPageContent({ params }: EditPageProps) {
                     hasCardBelow={index < portfolioData.sections.length - 1}
                     uploadingStates={uploadingStates[section.project.id] || {}}
                     onDelete={() => handleDeleteCard(section.project!.id)}
+                    onMove={(targetPageId) => handleMoveCard(section.project!.id, targetPageId)}
+                    moveOptions={moveOptions}
                   />
                 </motion.div>
               )

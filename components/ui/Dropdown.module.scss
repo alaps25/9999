@@ -29,6 +29,12 @@
   text-transform: uppercase; // Match button uppercase styling
 }
 
+.leftIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
 .icon {
   flex-shrink: 0;
   transition: transform 0.2s ease-in-out;
@@ -42,12 +48,12 @@
   position: absolute;
   top: 100%; // No gap - directly attached to trigger
   left: 0;
-  right: 0;
   z-index: 10000; // Very high z-index to ensure it's above all content
   background-color: $accent-secondary;
   outline: 1px solid $accent-primary;
   border-radius: var(--border-radius, 0px);
-  min-width: 100%;
+  min-width: 100%; // At least as wide as trigger
+  width: max-content; // Expand to fit longest option
   max-height: 300px;
   overflow-y: auto;
   display: flex;
@@ -77,6 +83,7 @@
   font-weight: 600;
   letter-spacing: 0.34em;
   text-transform: uppercase; // Match button uppercase styling
+  white-space: nowrap; // Prevent text wrapping, allow menu to expand
   cursor: pointer;
   transition: background-color 0.4s ease-in-out, color 0.4s ease-in-out;
   position: relative;
