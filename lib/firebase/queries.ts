@@ -299,6 +299,37 @@ export async function getProjectsByPageId(pageId: string, userId: string): Promi
 }
 
 /**
+ * Fetch all projects for a user (across all pages)
+ * Used for search functionality
+ */
+export async function getAllProjectsForUser(userId: string): Promise<Project[]> {
+  if (!isFirebaseConfigured() || !db) {
+    return []
+  }
+
+  try {
+    const projectsRef = collection(db, 'projects')
+    const q = query(
+      projectsRef,
+      where('userId', '==', userId),
+      orderBy('order', 'asc')
+    )
+    
+    const querySnapshot = await getDocs(q)
+    
+    const projects = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Project[]
+    
+    return projects
+  } catch (error) {
+    console.error('Error fetching all projects for user:', error)
+    return []
+  }
+}
+
+/**
  * Fetch portfolio data (menu items, sections, and bio) for a specific page
  * Uses pageId as the source of truth for better performance and reliability
  */

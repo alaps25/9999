@@ -2,7 +2,7 @@ import type { MenuItem } from '@/lib/firebase/types'
 
 /**
  * Get standard secondary menu items for logged-in users
- * Always includes SHARE, PRICING, ABOUT, and SETTINGS
+ * Always includes SHARE, SETTINGS, PRICING, and ABOUT
  */
 export function getSecondaryMenuItems(
   onShareClick: () => void,
@@ -34,5 +34,36 @@ export function getSecondaryMenuItems(
       href: '/about', 
       isActive: pathname === '/about' 
     },
+  ]
+}
+
+/**
+ * Add search item to the end of menu items (user pages)
+ */
+export function getMenuItemsWithSearch(
+  menuItems: MenuItem[],
+  username: string,
+  currentPath?: string
+): (MenuItem & { href: string; isActive: boolean })[] {
+  let pathname = currentPath
+  if (typeof window !== 'undefined' && !pathname) {
+    pathname = window.location.pathname
+  }
+  
+  const searchHref = `/${username}/search`
+  
+  return [
+    ...menuItems.map(item => ({
+      ...item,
+      href: `/${username}/${item.slug || 'page'}`,
+      isActive: false // Will be set by caller
+    })),
+    {
+      id: 'search',
+      label: 'SEARCH',
+      slug: 'search',
+      href: searchHref,
+      isActive: pathname === searchHref
+    } as MenuItem & { href: string; isActive: boolean }
   ]
 }

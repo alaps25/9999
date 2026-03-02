@@ -1752,7 +1752,7 @@ function EditPageContent({ params }: EditPageProps) {
   // Generate hrefs for menu items using username
   // Ensure only one item is active - use the first matching item by slug
   let foundActive = false
-  const menuItemsWithHrefs = portfolioData.menuItems.map((item) => {
+  const userMenuItems = portfolioData.menuItems.map((item) => {
     const matchesSlug = item.slug === pageSlug
     const shouldBeActive = matchesSlug && !foundActive
     if (shouldBeActive) {
@@ -1772,6 +1772,18 @@ function EditPageContent({ params }: EditPageProps) {
       ),
     }
   })
+  
+  // Add Search at the bottom of user pages
+  const menuItemsWithHrefs = [
+    ...userMenuItems,
+    {
+      id: 'search',
+      label: 'SEARCH',
+      slug: 'search',
+      href: `/${username}/search`,
+      isActive: false,
+    }
+  ]
 
   // Secondary menu items
   const secondaryMenuItems = getSecondaryMenuItems(handleShareClick)
