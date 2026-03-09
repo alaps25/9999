@@ -143,16 +143,11 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
   // Check if there's any content
   const hasContent = !!(portfolioData.bio?.text || portfolioData.sections.length > 0)
 
-  // Generate hrefs for menu items using username, with Search at the bottom
+  // Generate hrefs for menu items using username, with Search at the bottom for everyone
   // Ensure only one item is active - use the first matching item by slug
+  const isOwner = userData?.username === username
   let foundActive = false
-  const baseMenuItems = userData?.username === username
-    ? getMenuItemsWithSearch(portfolioData.menuItems, username)
-    : portfolioData.menuItems.map(item => ({
-        ...item,
-        href: `/${username}/${item.slug || 'page'}`,
-        isActive: false
-      }))
+  const baseMenuItems = getMenuItemsWithSearch(portfolioData.menuItems, username)
   
   const menuItemsWithHrefs = baseMenuItems.map(item => {
     const matchesSlug = item.slug === slug
@@ -166,12 +161,12 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
     }
   })
 
-  // Secondary menu items - show all for logged-in users viewing their own page
-  const secondaryMenuItems = userData?.username === username 
+  // Secondary menu items
+  // Owner: full menu (share, settings, pricing, about)
+  // Visitor: empty (no secondary menu items)
+  const secondaryMenuItems = isOwner 
     ? getSecondaryMenuItems(handleShareClick)
-    : [
-    { id: 'share', label: 'SHARE', onClick: handleShareClick },
-  ]
+    : []
 
   return (
     <div className={styles.page}>
@@ -182,13 +177,13 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
         onMobileMenuToggle={setMobileMenuOpen}
       />
       <MainContent>
-        {/* Page Header Row */}
-        {userData?.username === username && (
-          <div className={styles.pageHeaderRow}>
-            <div className={styles.pageName}>
-              {portfolioData.menuItems.find(item => item.id === currentPageId)?.label || 'untitled'}
-            </div>
-            {isMobile ? (
+        {/* Page Header Row - shown to everyone */}
+        <div className={styles.pageHeaderRow}>
+          <div className={styles.pageName}>
+            {portfolioData.menuItems.find(item => item.id === currentPageId)?.label || 'untitled'}
+          </div>
+          {isOwner && (
+            isMobile ? (
               <MobileMenuButton 
                 isOpen={mobileMenuOpen} 
                 onToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -204,9 +199,9 @@ function PageContent({ username, slug }: { username: string; slug: string }) {
                 <Edit size={16} />
                 EDIT
               </Button>
-            )}
-          </div>
-        )}
+            )
+          )}
+        </div>
 
         {/* Projects Section */}
         <div className={styles.projectsSection}>
