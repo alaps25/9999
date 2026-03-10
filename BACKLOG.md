@@ -4,6 +4,16 @@ Future features and improvements for Wires portfolio builder.
 
 ## High Priority
 
+### Optimize Page Navigation Performance
+- **Description**: Page transitions feel slow because each navigation triggers multiple Firebase queries
+- **Problem**: Every page change runs `getUserIdByUsername()`, `getUserSettings()`, `getPageIdBySlug()`, `getPortfolioDataByPageId()` - causing 1-3 second delays
+- **Potential Solutions**:
+  - [ ] Cache menu items and user data at the layout level (not per-page)
+  - [ ] Use React Query or SWR for data fetching with caching
+  - [ ] Prefetch page data when hovering over nav links
+  - [ ] Keep sidebar mounted during page transitions (don't show "Loading..." for entire page)
+  - [ ] Consider server components for static parts of the page
+
 ### Auto-delete Empty Cards on Save
 - **Description**: When user clicks SAVE, automatically delete any cards that have no content (no title, no description, no media)
 - **Rationale**: Prevents clutter from accidentally added empty cards
