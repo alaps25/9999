@@ -1,4 +1,4 @@
-import { doc, updateDoc, collection, addDoc, getDocs, query, orderBy, setDoc, where, deleteDoc, runTransaction } from 'firebase/firestore'
+import { doc, updateDoc, collection, addDoc, getDocs, query, orderBy, setDoc, where, deleteDoc, runTransaction, getDoc } from 'firebase/firestore'
 import { ref, listAll, deleteObject } from 'firebase/storage'
 import { db, storage } from './config'
 import type { Project, MenuItem, Slide } from './types'
@@ -116,8 +116,20 @@ export async function updateProject(projectId: string, updates: Partial<Project>
   }
 
   try {
-    console.log('🔄 Updating project:', { projectId, updates, userId })
+    // CRITICAL: Verify user owns this project before updating
     const projectRef = doc(db!, 'projects', projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap.exists()) {
+      throw new Error('Project not found')
+    }
+
+    const project = projectSnap.data()
+    if (project.userId !== userId) {
+      throw new Error('Unauthorized: You do not own this project')
+    }
+
+    console.log('🔄 Updating project:', { projectId, updates, userId })
     await updateDoc(projectRef, { ...updates, userId })
     console.log('✅ Project updated successfully')
   } catch (error) {
@@ -180,7 +192,19 @@ export async function deleteProject(projectId: string, userId: string): Promise<
   }
 
   try {
+    // CRITICAL: Verify user owns this project before deleting
     const projectRef = doc(db!, 'projects', projectId)
+    const projectSnap = await getDoc(projectRef)
+
+    if (!projectSnap.exists()) {
+      throw new Error('Project not found')
+    }
+
+    const project = projectSnap.data()
+    if (project.userId !== userId) {
+      throw new Error('Unauthorized: You do not own this project')
+    }
+
     await deleteDoc(projectRef)
   } catch (error) {
     console.error('Error deleting project:', error)
@@ -272,6 +296,7 @@ export async function saveUserTags(userId: string, tags: string[]): Promise<void
 /**
  * Update username for a user with transaction to prevent race conditions
  * Ensures username uniqueness and updates user document atomically
+ * Uses a usernames/{username} document to prevent concurrent username claims
  */
 export async function updateUsername(userId: string, newUsername: string, userEmail?: string | null): Promise<void> {
   if (!isFirebaseConfigured()) {
@@ -282,7 +307,7 @@ export async function updateUsername(userId: string, newUsername: string, userEm
   try {
     const { validateUsername, isUsernameAvailable } = await import('../utils/user')
     const { doc, getDoc } = await import('firebase/firestore')
-    
+
     // Get user email if not provided (for reserved username check)
     let email = userEmail
     if (!email && db) {
@@ -292,41 +317,64 @@ export async function updateUsername(userId: string, newUsername: string, userEm
         email = userSnap.data().email || null
       }
     }
-    
+
     // Validate username format (pass email to allow reserved usernames for special emails)
     const validation = validateUsername(newUsername, email)
     if (!validation.isValid) {
       throw new Error(validation.error || 'Invalid username')
     }
-    
+
     // Normalize username (lowercase, trim)
     const normalizedUsername = newUsername.toLowerCase().trim()
-    
+
     // Double-check availability before transaction (for better error messages)
     const available = await isUsernameAvailable(normalizedUsername, userId)
     if (!available) {
       throw new Error('Username is already taken')
     }
-    
+
     // Use transaction to ensure atomicity and prevent race conditions
     await runTransaction(db!, async (transaction) => {
       // Get user document
       const userRef = doc(db!, 'users', userId)
       const userSnap = await transaction.get(userRef)
-      
+
       if (!userSnap.exists()) {
         throw new Error('User document not found')
       }
-      
-      // Check if username is taken by querying (we need to check outside transaction for queries)
-      // But we'll do a final check by reading all users with this username
-      // Since we can't use queries in transactions, we'll rely on the pre-check above
-      // and use the transaction to ensure atomic update
-      
+
+      const currentData = userSnap.data()
+      const oldUsername = currentData.username
+
+      // Check if new username is taken by reading the username document
+      // This prevents race conditions where two users try to claim the same username
+      const usernameRef = doc(db!, 'usernames', normalizedUsername)
+      const usernameSnap = await transaction.get(usernameRef)
+
+      if (usernameSnap.exists()) {
+        const existingUserId = usernameSnap.data().userId
+        // Only allow if it's the same user (changing username case, etc)
+        if (existingUserId !== userId) {
+          throw new Error('Username is already taken')
+        }
+      }
+
+      // Delete old username document if it exists and is different
+      if (oldUsername && oldUsername !== normalizedUsername) {
+        const oldUsernameRef = doc(db!, 'usernames', oldUsername)
+        const oldUsernameSnap = await transaction.get(oldUsernameRef)
+        if (oldUsernameSnap.exists()) {
+          transaction.delete(oldUsernameRef)
+        }
+      }
+
+      // Create/update username document as a lock to claim this username
+      transaction.set(usernameRef, { userId }, { merge: true })
+
       // Update user document with new username
       transaction.update(userRef, { username: normalizedUsername })
     })
-    
+
     console.log('✅ Username updated successfully')
   } catch (error) {
     console.error('❌ Error updating username:', error)
@@ -384,27 +432,58 @@ export async function deletePage(pageId: string, userId: string): Promise<void> 
 
   try {
     console.log('🔄 Deleting page:', { pageId, userId })
-    
-    // 1. Get all projects for this page
+
+    // Use transaction for ATOMICITY - all-or-nothing deletion
+    await runTransaction(db!, async (transaction) => {
+      // 1. Verify user owns this page (menu item)
+      const menuItemRef = doc(db!, 'menu', pageId)
+      const menuItemSnap = await transaction.get(menuItemRef)
+
+      if (!menuItemSnap.exists()) {
+        throw new Error('Page not found')
+      }
+
+      const menuItem = menuItemSnap.data()
+      if (menuItem.userId !== userId) {
+        throw new Error('Unauthorized: You do not own this page')
+      }
+
+      // 2. Get all projects for this page (must be done outside transaction if using queries)
+      const projectsRef = collection(db!, 'projects')
+      const projectsQuery = query(
+        projectsRef,
+        where('userId', '==', userId),
+        where('pageId', '==', pageId)
+      )
+      const projectDocs = await getDocs(projectsQuery)
+
+      // 3. Delete all projects in transaction
+      for (const projectDoc of projectDocs.docs) {
+        transaction.delete(doc(db!, 'projects', projectDoc.id))
+      }
+
+      // 4. Delete the menu item in transaction
+      transaction.delete(menuItemRef)
+    })
+
+    // 5. Delete images from Storage (best-effort, not part of transaction)
     const projectsRef = collection(db!, 'projects')
     const projectsQuery = query(
-      projectsRef, 
+      projectsRef,
       where('userId', '==', userId),
       where('pageId', '==', pageId)
     )
     const projectDocs = await getDocs(projectsQuery)
-    
-    // 2. Delete all images from projects before deleting projects
+
     const imageUrls: string[] = []
     for (const projectDoc of projectDocs.docs) {
       const project = projectDoc.data() as Project
-      
-      // Collect image URLs
+
       if (project.singleImage) {
         const images = Array.isArray(project.singleImage) ? project.singleImage : [project.singleImage]
         imageUrls.push(...images.filter(url => url && !isBlobUrl(url)))
       }
-      
+
       if (project.slides) {
         for (const slide of project.slides) {
           if (slide.image && !isBlobUrl(slide.image)) {
@@ -413,8 +492,7 @@ export async function deletePage(pageId: string, userId: string): Promise<void> 
         }
       }
     }
-    
-    // Delete all project images from Storage
+
     if (storage && imageUrls.length > 0) {
       await Promise.all(
         imageUrls.map(async (url) => {
@@ -428,20 +506,12 @@ export async function deletePage(pageId: string, userId: string): Promise<void> 
             }
           } catch (error) {
             console.error('Error deleting image:', error)
-            // Continue with other deletions
           }
         })
       )
     }
-    
-    // 3. Delete all projects for this page
-    await Promise.all(projectDocs.docs.map(docSnapshot => deleteDoc(doc(db!, 'projects', docSnapshot.id))))
-    console.log(`✅ Deleted ${projectDocs.docs.length} projects`)
-    
-    // 4. Delete the menu item (page)
-    const menuItemRef = doc(db!, 'menu', pageId)
-    await deleteDoc(menuItemRef)
-    console.log('✅ Page deleted successfully')
+
+    console.log(`✅ Page and ${projectDocs.docs.length} projects deleted successfully`)
   } catch (error) {
     console.error('❌ Error deleting page:', error)
     throw error
