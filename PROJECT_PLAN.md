@@ -14,7 +14,10 @@ This document is the source of truth for project priorities, in-progress work, a
 
 ## 🚀 In Progress
 
-(none currently)
+### Auto-delete Empty Cards on Save
+**Priority**: HIGH  
+**Status**: Starting implementation  
+**Effort**: 1-2 hours
 
 **Problem**: 
 - Page transitions feel slow (1-3 second delays)
@@ -77,24 +80,29 @@ This document is the source of truth for project priorities, in-progress work, a
 
 ## 🟡 Medium Priority
 
-### 3. Undo/Redo Support
-**Priority**: MEDIUM  
-**Estimated Effort**: 2-3 days  
-**Type**: Feature (workflow improvement)
+### 3. Explore Portfolio Visualizations (NEW)
+**Priority**: HIGH  
+**Estimated Effort**: 2-3 hours research + design exploration  
+**Type**: Discovery & Design
 
-**Description**: Add undo/redo functionality for content editing
+**Description**: Research and explore different visualization layouts for portfolios beyond standard grid/list view
 
-**Rationale**: Users may accidentally delete content and need to recover. Complements the deletion confirmation we added.
+**Options to Explore**:
+- Timeline view (chronological ordering)
+- Topic/skill-based clustering
+- Interactive graph/network view
+- Category-based visualization
+- Tag cloud or skill matrix
+- 3D/immersive layouts (if feasible)
 
-**Implementation Strategy**:
-- Use a state management approach (context + reducer or zustand)
-- Maintain history stack of portfolio states
-- Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Shift+Z (redo)
+**Process**:
+- [ ] Find 10-15 coolest portfolio sites and designs
+- [ ] Document URL and key visualization approach
+- [ ] Compare pros/cons for our users
+- [ ] Prototype 2-3 most promising options
+- [ ] Get user feedback and finalize
 
-**Tests Needed**:
-- [ ] History stack logic
-- [ ] Keyboard shortcut binding
-- [ ] Memory management (limit history to last N states)
+**Rationale**: Standard grid might not be best for all portfolio types; exploring modern visualization approaches
 
 ---
 
@@ -152,17 +160,7 @@ This document is the source of truth for project priorities, in-progress work, a
 
 ---
 
-### 7. Analytics Dashboard
-**Priority**: LOW  
-**Type**: Feature
-
-**Description**: Track portfolio views and engagement
-
-**Rationale**: Help users understand their audience
-
----
-
-### 8. Custom Fonts
+### 7. Custom Fonts
 **Priority**: LOW  
 **Type**: Feature
 
