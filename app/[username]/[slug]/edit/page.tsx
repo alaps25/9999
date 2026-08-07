@@ -31,7 +31,8 @@ import { EditableText } from '@/components/ui/EditableText'
 import { Dropdown } from '@/components/ui/Dropdown'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { getPageIdBySlug, getPortfolioDataByPageId, getMenuItems } from '@/lib/firebase/queries'
+import { getPageIdBySlug } from '@/lib/firebase/queries'
+import { usePortfolioData } from '@/contexts/PortfolioContext'
 import {
   updateBio,
   updateMenuItem,
@@ -77,6 +78,7 @@ function EditPageContent({ params }: EditPageProps) {
   const isMobile = useIsMobile()
   const { storageLimitBytes, plan } = useSubscription()
   const storageUsage = useStorageUsage()
+  const { menuItems, bio, currentPageSections, loadPageData, refreshUserData, refreshPageData } = usePortfolioData()
   const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null)
   
   // Redirect to view page if on mobile (edit mode not supported)
@@ -181,9 +183,8 @@ function EditPageContent({ params }: EditPageProps) {
         await updateProjectOrders(projectOrders, user.uid)
       }
 
-      // Reload portfolio data to reflect new order
-      const updatedData = await getPortfolioDataByPageId(currentPageId, user.uid)
-      setPortfolioData(updatedData)
+      // Reload page data to reflect new order
+      await refreshPageData(currentPageId, user.uid)
 
       // Exit reorder mode
       setIsReorderMode(false)
@@ -270,6 +271,7 @@ function EditPageContent({ params }: EditPageProps) {
     }
   }
 
+  // Load page-specific data when slug changes
   useEffect(() => {
     async function loadData() {
       if (!user || !userData) {
@@ -285,9 +287,9 @@ function EditPageContent({ params }: EditPageProps) {
       }
 
       try {
-        // Get pageId from slug (optimized)
+        // Get pageId from slug
         const pageId = await getPageIdBySlug(pageSlug, user.uid)
-        
+
         if (!pageId) {
           console.error('Page not found for slug:', pageSlug)
           setLoading(false)
@@ -296,9 +298,8 @@ function EditPageContent({ params }: EditPageProps) {
 
         setCurrentPageId(pageId)
 
-        // Load portfolio data using pageId (optimized query)
-        const data = await getPortfolioDataByPageId(pageId, user.uid)
-        setPortfolioData(data)
+        // Load page data via context (menuItems + bio cached, only projects fetched)
+        await loadPageData(pageId, user.uid)
       } catch (error) {
         console.error('Error loading page data:', error)
       } finally {
@@ -306,7 +307,18 @@ function EditPageContent({ params }: EditPageProps) {
       }
     }
     loadData()
-  }, [pageSlug, username, user, userData])
+  }, [pageSlug, username, user, userData, loadPageData])
+
+  // Compose portfolioData from cached context data
+  useEffect(() => {
+    if (menuItems && currentPageSections !== null) {
+      setPortfolioData({
+        menuItems,
+        sections: currentPageSections,
+        bio,
+      })
+    }
+  }, [menuItems, currentPageSections, bio])
 
   // Sync pageNameInput with current page name when portfolioData or currentPageId changes
   useEffect(() => {
@@ -422,11 +434,13 @@ function EditPageContent({ params }: EditPageProps) {
     try {
       const itemId = await addMenuItem(newItem, user.uid)
       // Reload menu items to get the slug that was generated
-      const menuItems = await getMenuItems(user.uid)
-      const createdItem = menuItems.find(item => item.id === itemId)
-      const menuItem: MenuItem = createdItem || { 
-        ...newItem, 
-        id: itemId, 
+      await refreshUserData(user.uid)
+
+      // Find the created item in refreshed menu
+      const createdItem = menuItems?.find(item => item.id === itemId)
+      const menuItem: MenuItem = createdItem || {
+        ...newItem,
+        id: itemId,
         slug: generateSlug(newItem.label),
       }
       

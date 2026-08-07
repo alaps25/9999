@@ -14,10 +14,7 @@ This document is the source of truth for project priorities, in-progress work, a
 
 ## 🚀 In Progress
 
-### 1. Optimize Page Navigation Performance
-**Priority**: CRITICAL  
-**Status**: Starting  
-**Branch**: `project/planning-and-nav-optimization`
+(none currently)
 
 **Problem**: 
 - Page transitions feel slow (1-3 second delays)
@@ -177,6 +174,11 @@ This document is the source of truth for project priorities, in-progress work, a
 
 ## ✅ Completed
 
+- ✅ **Page navigation performance optimization** (PR #32) — Reduced load time by caching user-level data
+  - Created PortfolioContext to cache menuItems + bio at user level
+  - Only fetch page-specific projects when navigating between pages
+  - Eliminated duplicate queries for unchanged data
+  - Estimated impact: 60-70% reduction in page transition time
 - ✅ **Deletion confirmation dialog** (PR #29) — Prevent accidental card deletions
 - ✅ **Documentation fixes** (PR #30) — Remove broken refs, update README
 - ✅ **Jest testing infrastructure** (PR #31) — Foundation for unit/integration tests
