@@ -94,7 +94,7 @@ A modern, fast, and customizable portfolio website builder built with Next.js an
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/wires.git
+git clone https://github.com/alaps25/9999.git
 cd wires
 ```
 
@@ -141,10 +141,8 @@ Open [http://localhost:9999](http://localhost:9999) to see your portfolio!
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](./QUICKSTART.md)** - Get up and running quickly
-- **[Firebase Setup](./FIREBASE_SETUP.md)** - Detailed Firebase configuration
 - **[Firestore Security Rules](./FIRESTORE_SECURITY_RULES.md)** - Security configuration
-- **[Testing Guide](./TESTING.md)** - Testing with mock data
+- **[Firestore Indexes](./FIRESTORE_INDEXES.md)** - Database index setup
 - **[Backlog](./BACKLOG.md)** - Planned features and improvements
 
 ## 🏗️ Project Structure
@@ -237,17 +235,14 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📧 Support
 
-For support, email support@example.com or open an issue in the GitHub repository.
+Open an issue in the GitHub repository to report bugs or request features.
 
 ## 🔗 Links
 
-- [Live Demo](https://your-demo-url.com)
-- [Documentation](./QUICKSTART.md)
-- [Firebase Setup Guide](./FIREBASE_SETUP.md)
 - [Backlog / Roadmap](./BACKLOG.md)
-- [Report a Bug](https://github.com/yourusername/wires/issues)
+- [Report a Bug](https://github.com/alaps25/9999/issues)
 
 ---
 
-Made with ❤️ by [Your Name]
+Made with ❤️
 
