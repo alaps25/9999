@@ -43,10 +43,10 @@ export function TimelineView({ projects, username }: TimelineViewProps) {
     setFocusedYear(focusedYear === year ? null : year)
   }
 
-  if (timelineData.length === 0) {
+  if (projects.length === 0) {
     return (
       <div className={styles.emptyState}>
-        <p>No projects yet. Start by creating your first project!</p>
+        <p>No projects yet. Create your first project to build your timeline!</p>
       </div>
     )
   }
@@ -65,14 +65,15 @@ export function TimelineView({ projects, username }: TimelineViewProps) {
               focusedYear === entry.year ? styles.focused : ''
             }`}
           >
-            {/* Year marker */}
+            {/* Year marker - click to expand */}
             <button
               className={styles.yearMarker}
               onClick={() => handleYearClick(entry.year)}
-              aria-label={`View ${entry.year} projects`}
+              aria-label={`View ${entry.year} (${entry.projects.length} projects)`}
             >
               <div className={styles.yearDot} />
               <div className={styles.yearLabel}>{entry.year}</div>
+              <div className={styles.yearCount}>{entry.projects.length}</div>
             </button>
 
             {/* Projects (collapsed by default, expanded on year click) */}

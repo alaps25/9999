@@ -130,6 +130,20 @@
   }
 }
 
+.yearCount {
+  font-size: 12px;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+
+  .yearMarker:hover & {
+    opacity: 0.7;
+  }
+
+  .timelineEntry.focused & {
+    opacity: 0.6;
+  }
+}
+
 .projectsContainer {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
