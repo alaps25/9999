@@ -858,19 +858,36 @@ function EditPageContent({ params }: EditPageProps) {
   // Handler for deleting a card/project
   const handleDeleteCard = async (projectId: string) => {
     if (!user) return
-    
-    // Delete associated images from Firebase Storage
+
+    const confirmed = window.confirm(
+      'Are you sure you want to delete this card?\n\n' +
+      'This will permanently delete this card and any images on it. ' +
+      'This action cannot be undone.'
+    )
+
+    if (!confirmed) return
+
+    // Delete from Firestore first — fail early if it fails
+    try {
+      await deleteProject(projectId, user.uid)
+    } catch (error) {
+      console.error('Failed to delete project:', error)
+      alert('Failed to delete card. Please try again.')
+      return
+    }
+
+    // Delete associated images from Firebase Storage (best-effort after Firestore delete succeeds)
     const section = portfolioData?.sections.find(
       s => s.type === 'project' && s.project?.id === projectId
     )
-    
+
     if (section?.type === 'project' && section.project) {
       // Delete single image
       if (section.project.singleImage) {
         const imageArray = Array.isArray(section.project.singleImage)
           ? section.project.singleImage
           : [section.project.singleImage]
-        
+
         for (const imageUrl of imageArray) {
           if (imageUrl && !isBlobUrl(imageUrl)) {
             try {
@@ -881,7 +898,7 @@ function EditPageContent({ params }: EditPageProps) {
           }
         }
       }
-      
+
       // Delete slide images
       if (section.project.slides) {
         for (const slide of section.project.slides) {
@@ -895,7 +912,7 @@ function EditPageContent({ params }: EditPageProps) {
         }
       }
     }
-    
+
     // Remove from local state
     setPortfolioData((currentData) => {
       if (!currentData) return currentData
@@ -906,13 +923,6 @@ function EditPageContent({ params }: EditPageProps) {
         ),
       }
     })
-    
-    // Delete from Firestore
-    try {
-      await deleteProject(projectId, user.uid)
-    } catch (error) {
-      console.error('Failed to delete project:', error)
-    }
   }
 
   // Handler for moving a card to another page
