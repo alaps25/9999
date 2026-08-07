@@ -86,7 +86,7 @@ function EditPageContent({ params }: EditPageProps) {
     if (isMobile) {
       router.replace(`/${params.username}/${params.slug}`)
     }
-  }, [isMobile, params.username, params.slug, router])
+  }, [isMobile, params.username, params.slug])
   const [loading, setLoading] = useState(true)
   const [currentPageId, setCurrentPageId] = useState<string | null>(null)
   // Track uploading state per project: { projectId: { [imageIndex]: boolean } }

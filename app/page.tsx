@@ -21,7 +21,7 @@ export default function Home() {
     if (!loading && user && userData) {
       router.push(`/${userData.username}`)
     }
-  }, [user, userData, loading, router])
+  }, [user, userData, loading])
 
   // Show loading state
   if (loading) {
