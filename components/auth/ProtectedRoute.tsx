@@ -20,7 +20,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     if (!loading && !user) {
       router.push('/')
     }
-  }, [user, loading, router])
+  }, [user, loading])
 
   // Show nothing while checking auth or redirecting
   if (loading || !user) {
