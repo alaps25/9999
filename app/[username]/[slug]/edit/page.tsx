@@ -86,7 +86,7 @@ function EditPageContent({ params }: EditPageProps) {
     if (isMobile) {
       router.replace(`/${params.username}/${params.slug}`)
     }
-  }, [isMobile, params.username, params.slug, router])
+  }, [isMobile, params.username, params.slug])
   const [loading, setLoading] = useState(true)
   const [currentPageId, setCurrentPageId] = useState<string | null>(null)
   // Track uploading state per project: { projectId: { [imageIndex]: boolean } }
@@ -286,6 +286,9 @@ function EditPageContent({ params }: EditPageProps) {
         return
       }
 
+      // Show loading state immediately when fetching new page
+      setLoading(true)
+
       try {
         // Get pageId from slug
         const pageId = await getPageIdBySlug(pageSlug, user.uid)
@@ -307,7 +310,7 @@ function EditPageContent({ params }: EditPageProps) {
       }
     }
     loadData()
-  }, [pageSlug, username, user, userData, loadPageData])
+  }, [pageSlug, username, user, userData])
 
   // Compose portfolioData from cached context data
   useEffect(() => {
