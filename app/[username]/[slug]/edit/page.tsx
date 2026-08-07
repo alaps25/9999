@@ -457,7 +457,7 @@ function EditPageContent({ params }: EditPageProps) {
 
       // Navigate to the new page's edit route
       const newSlug = menuItem.slug || generateSlug(newItem.label)
-      router.push(`/${username}/${newSlug}/edit`)
+      router.push(`/${params.username}/${newSlug}/edit`)
     } catch (error) {
       console.error('Failed to add menu item:', error)
       // Fallback: add with temporary ID
