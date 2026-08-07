@@ -472,11 +472,60 @@ function EditPageContent({ params }: EditPageProps) {
     }
   }
 
+  // Check if a card/section is completely empty
+  const isEmptyCard = (section: PortfolioData['sections'][0]): boolean => {
+    if (section.type === 'text') {
+      return !section.content || section.content.trim() === ''
+    }
+    if (section.type === 'image') {
+      return !section.imageUrl || section.imageUrl.trim() === ''
+    }
+    if (section.type === 'project' && section.project) {
+      const p = section.project
+      // Card is empty if: no title AND no description AND no images
+      const hasNoTitle = !p.title || p.title.trim() === ''
+      const hasNoDescription = !p.description || p.description.trim() === ''
+      const hasNoImages = !p.singleImage && (!p.slides || p.slides.length === 0)
+      return hasNoTitle && hasNoDescription && hasNoImages
+    }
+    return false
+  }
+
+  // Delete all empty cards and return count of deleted cards
+  const deleteEmptyCards = async (): Promise<number> => {
+    if (!portfolioData) return 0
+
+    const emptyCards = portfolioData.sections.filter(isEmptyCard)
+    if (emptyCards.length === 0) return 0
+
+    // Delete each empty card
+    for (const section of emptyCards) {
+      if (section.type === 'project' && section.project) {
+        try {
+          await deleteProject(section.project.id, user!.uid)
+        } catch (error) {
+          console.error('Error deleting empty project:', error)
+        }
+      }
+    }
+
+    // Update local state to remove empty cards
+    setPortfolioData(currentData => {
+      if (!currentData) return currentData
+      return {
+        ...currentData,
+        sections: currentData.sections.filter(s => !isEmptyCard(s)),
+      }
+    })
+
+    return emptyCards.length
+  }
+
   const handleViewClick = async () => {
     // Before navigating, ensure all pending changes are saved
     // Blur any active input fields to trigger their save handlers
     const activeElement = document.activeElement as HTMLElement
-    
+
     // If there's an active input/textarea/contentEditable, blur it to trigger save
     if (activeElement && (
       activeElement.tagName === 'INPUT' ||
@@ -484,12 +533,12 @@ function EditPageContent({ params }: EditPageProps) {
       activeElement.isContentEditable
     )) {
       activeElement.blur()
-      
+
       // Wait a bit for the blur handler to complete (save operations are async)
       // This gives time for the save handlers to fire
       await new Promise(resolve => setTimeout(resolve, 100))
     }
-    
+
     // Also ensure page name input is saved if it has unsaved changes
     if (currentPageId && portfolioData) {
       const currentMenuItem = portfolioData.menuItems.find(
@@ -499,10 +548,20 @@ function EditPageContent({ params }: EditPageProps) {
         await handleMenuItemChange(currentMenuItem.id, pageNameInput)
       }
     }
-    
+
     // Small delay to ensure all async saves complete
     await new Promise(resolve => setTimeout(resolve, 200))
-    
+
+    // Auto-delete empty cards before leaving edit mode
+    const deletedCount = await deleteEmptyCards()
+    if (deletedCount > 0) {
+      const message = deletedCount === 1
+        ? '1 empty card was removed'
+        : `${deletedCount} empty cards were removed`
+      console.log(`✨ ${message}`)
+      // Toast notification would appear here if we had a toast library
+    }
+
     router.push(`/${username}/${pageSlug}`)
   }
 
