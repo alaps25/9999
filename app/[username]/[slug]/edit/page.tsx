@@ -310,7 +310,7 @@ function EditPageContent({ params }: EditPageProps) {
       }
     }
     loadData()
-  }, [pageSlug, username, user, userData, loadPageData])
+  }, [pageSlug, username, user, userData])
 
   // Compose portfolioData from cached context data
   useEffect(() => {
