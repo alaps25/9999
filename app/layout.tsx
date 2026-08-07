@@ -3,8 +3,9 @@ import { Inter } from 'next/font/google'
 import '@fontsource/geist-mono'
 import './globals.css'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { PortfolioProvider } from '@/contexts/PortfolioContext'
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
 })
@@ -23,7 +24,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
-          {children}
+          <PortfolioProvider>
+            {children}
+          </PortfolioProvider>
         </AuthProvider>
       </body>
     </html>
