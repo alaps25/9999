@@ -286,6 +286,9 @@ function EditPageContent({ params }: EditPageProps) {
         return
       }
 
+      // Show loading state immediately when fetching new page
+      setLoading(true)
+
       try {
         // Get pageId from slug
         const pageId = await getPageIdBySlug(pageSlug, user.uid)
