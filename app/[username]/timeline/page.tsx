@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { MainContent } from '@/components/layout/MainContent'
-import { TimelineViewV2 } from '@/components/layout/TimelineViewV2'
+import { TimelineViewV3 } from '@/components/layout/TimelineViewV3'
 import { useAuth } from '@/contexts/AuthContext'
 import { usePortfolioData } from '@/contexts/PortfolioContext'
 import { getAllProjectsForUser } from '@/lib/firebase/queries'
@@ -89,7 +89,7 @@ export default function TimelinePage({ params }: TimelinePageProps) {
             <p>No projects yet. Create your first project to build your timeline!</p>
           </div>
         ) : (
-          <TimelineViewV2 projects={projects} username={username} />
+          <TimelineViewV3 projects={projects} username={username} />
         )}
       </MainContent>
     </div>

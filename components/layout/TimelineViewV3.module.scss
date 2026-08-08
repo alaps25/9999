@@ -1,0 +1,352 @@
+.timelineContainer {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 64px 32px;
+  min-height: 100vh;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 60px;
+  transition: opacity 0.3s ease;
+}
+
+// Vertical dotted timeline line
+.timelineAxis {
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    currentColor 0px,
+    currentColor 3px,
+    transparent 3px,
+    transparent 7px
+  );
+  opacity: 0.3;
+}
+
+// Individual timeline entry (one per project)
+.timelineEntry {
+  position: relative;
+  padding-bottom: 48px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-left: 0;
+
+  // Timeline dot
+  &::before {
+    content: '';
+    position: absolute;
+    left: -38px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.3;
+    transition: all 0.3s ease;
+    will-change: opacity, transform;
+  }
+
+  // Hover state: dot becomes accent color and scales
+  &:hover::before {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+}
+
+// Year pill (hidden by default)
+.yearPill {
+  position: absolute;
+  left: -80px;
+  top: -2px;
+  padding: 6px 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+  background: transparent;
+  color: currentColor;
+  white-space: nowrap;
+}
+
+// Project title
+.projectTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 900; // Max weight (bold)
+  line-height: 1.3;
+  color: currentColor;
+  transition: color 0.3s ease;
+  will-change: color;
+  letter-spacing: -0.5px;
+
+  &:hover {
+    text-decoration: none;
+  }
+}
+
+// Empty state
+.emptyState {
+  text-align: center;
+  padding: 64px 32px;
+  opacity: 0.5;
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
+// ====================
+// PROJECT DETAIL CARD
+// ====================
+
+// Overlay (fade background)
+.detailOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+// Detail card
+.detailCard {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  padding: 48px 40px;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+// Close button (outside/above card)
+.closeButton {
+  position: absolute;
+  top: -48px;
+  right: 0;
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: rgba(255, 255, 255, 0.9);
+  color: currentColor;
+  font-size: 24px;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+
+  &:hover {
+    background: white;
+    transform: rotate(90deg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Detail content
+.detailContent {
+  animation: fadeIn 0.4s ease 0.1s both;
+}
+
+.detailYear {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.detailTitle {
+  margin: 0 0 24px 0;
+  font-size: 32px;
+  font-weight: 900;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+
+.detailDescription {
+  margin: 0 0 24px 0;
+  font-size: 16px;
+  line-height: 1.6;
+  opacity: 0.8;
+  color: currentColor;
+}
+
+.detailTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detailTag {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid currentColor;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .detailCard {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .closeButton {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .timelineContainer {
+    padding: 48px 24px;
+  }
+
+  .timeline {
+    padding-left: 48px;
+  }
+
+  .timelineEntry {
+    &::before {
+      left: -32px;
+    }
+  }
+
+  .yearPill {
+    left: -70px;
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .projectTitle {
+    font-size: 16px;
+  }
+
+  .detailCard {
+    max-width: 90vw;
+    padding: 40px 32px;
+  }
+
+  .closeButton {
+    top: -40px;
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
+
+  .detailTitle {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timelineContainer {
+    padding: 32px 16px;
+  }
+
+  .timeline {
+    padding-left: 40px;
+  }
+
+  .timelineEntry {
+    gap: 12px;
+    padding-bottom: 40px;
+
+    &::before {
+      left: -28px;
+      width: 8px;
+      height: 8px;
+    }
+  }
+
+  .yearPill {
+    position: static;
+    margin-bottom: 8px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .projectTitle {
+    font-size: 15px;
+  }
+
+  .detailCard {
+    max-width: 95vw;
+    padding: 32px 24px;
+    border-radius: 8px;
+  }
+
+  .closeButton {
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+
+  .detailTitle {
+    font-size: 20px;
+  }
+
+  .detailDescription {
+    font-size: 14px;
+  }
+}
