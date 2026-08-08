@@ -91,7 +91,9 @@ export const useGsapTrigger = <T extends HTMLElement>(
     animationFn(tl, ref.current)
     setTimeline(tl)
 
-    return () => tl.kill()
+    return () => {
+      tl.kill()
+    }
   }, [trigger, options.disabled, options.onComplete, animationFn, ref])
 
   return timeline
@@ -124,7 +126,9 @@ export const useGsapStagger = (
     animationFn(tl, elements)
     setTimeline(tl)
 
-    return () => tl.kill()
+    return () => {
+      tl.kill()
+    }
   }, [elements, options.disabled, options.onComplete, animationFn])
 
   return timeline
@@ -197,7 +201,9 @@ export const useTimelineEntryAnimation = (
       })
     }
 
-    return () => tl.kill()
+    return () => {
+      tl.kill()
+    }
   }, [isVisible, ref])
 }
 
@@ -224,7 +230,9 @@ export const useStaggerListAnimation = (
       }
     })
 
-    return () => tl.kill()
+    return () => {
+      tl.kill()
+    }
   }, [shouldAnimate, items])
 }
 
