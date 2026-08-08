@@ -1,7 +1,10 @@
 'use client'
 
-import React, { useState, useMemo, useRef } from 'react'
+import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import gsap from 'gsap'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X } from 'lucide-react'
 import { ProjectCard } from '@/components/content/ProjectCard'
 import { Project } from '@/lib/firebase/types'
 import styles from './TimelineViewV3.module.scss'
@@ -20,12 +23,18 @@ interface TimelineViewProps {
  * - Uses existing ProjectCard component from DS
  * - Uses Inter font (project default) at highest weight
  * - On hover: title turns accent color, year pill appears
- * - Click to show same project card as portfolio view
+ * - Click to open project in modal (same as Lightbox pattern)
  */
 export function TimelineViewV3({ projects, username }: TimelineViewProps) {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
   const entryRefs = useRef<Map<string, HTMLElement>>(new Map())
   const yearPillRefs = useRef<Map<string, HTMLElement>>(new Map())
+
+  // Hydration fix
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Sort projects by year (newest first)
   const sortedProjects = useMemo(() => {
@@ -59,7 +68,7 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         tl.to(
           titleEl,
           {
-            color: 'var(--accent-primary, #0066ff)',
+            color: 'var(--accent-primary, #000000)',
             duration: 0.3,
             ease: 'power2.out'
           },
@@ -78,28 +87,13 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         },
         0
       )
-
-      // Timeline dot scales
-      const dot = entry.querySelector(`.${styles.timelineDot}`)
-      if (dot) {
-        tl.to(
-          dot,
-          {
-            scale: 1.4,
-            opacity: 1,
-            duration: 0.3,
-            ease: 'power2.out'
-          },
-          0
-        )
-      }
     } else {
       // Reset
       if (titleEl) {
         tl.to(
           titleEl,
           {
-            color: 'currentColor',
+            color: 'var(--text-secondary, #666666)',
             duration: 0.3,
             ease: 'power2.out'
           },
@@ -117,30 +111,18 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         },
         0
       )
-
-      // Timeline dot resets
-      const dot = entry.querySelector(`.${styles.timelineDot}`)
-      if (dot) {
-        tl.to(
-          dot,
-          {
-            scale: 1,
-            opacity: 0.3,
-            duration: 0.3,
-            ease: 'power2.out'
-          },
-          0
-        )
-      }
     }
   }
 
   const handleProjectClick = (projectId: string) => {
     setSelectedProjectId(projectId)
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden'
   }
 
   const handleCloseDetail = () => {
     setSelectedProjectId(null)
+    document.body.style.overflow = ''
   }
 
   // Get selected project
@@ -180,9 +162,6 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
               }
             }}
           >
-            {/* Dot on timeline */}
-            <div className={styles.timelineDot} />
-
             {/* Year pill (hidden by default, shown on hover) */}
             <div
               ref={(el) => {
@@ -199,29 +178,49 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         ))}
       </div>
 
-      {/* Project detail - uses existing ProjectCard component */}
-      {selectedProject && (
-        <div className={styles.detailOverlay} onClick={handleCloseDetail}>
-          <div
-            className={styles.detailWrapper}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
-            {/* Close button */}
-            <button
-              className={styles.closeButton}
-              onClick={handleCloseDetail}
-              aria-label="Close project"
-            >
-              ✕
-            </button>
+      {/* Project detail modal - same pattern as Lightbox */}
+      {isMounted &&
+        createPortal(
+          <AnimatePresence>
+            {selectedProject && (
+              <motion.div
+                className={styles.modalOverlay}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Backdrop */}
+                <div className={styles.modalBackdrop} onClick={handleCloseDetail} />
 
-            {/* Existing ProjectCard component */}
-            <ProjectCard project={selectedProject} variant="project" />
-          </div>
-        </div>
-      )}
+                {/* Modal content */}
+                <motion.div
+                  className={styles.modalContent}
+                  initial={{ scale: 0.95, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.95, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Close button */}
+                  <button
+                    className={styles.modalCloseButton}
+                    onClick={handleCloseDetail}
+                    aria-label="Close project"
+                  >
+                    <X size={24} />
+                  </button>
+
+                  {/* Project card (same as portfolio view) */}
+                  <div className={styles.modalCard}>
+                    <ProjectCard project={selectedProject} variant="project" />
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
     </div>
   )
 }

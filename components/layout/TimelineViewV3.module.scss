@@ -11,7 +11,6 @@
 .timeline {
   position: relative;
   padding-left: 60px;
-  transition: opacity 0.3s ease;
 }
 
 // Vertical dotted timeline line
@@ -42,20 +41,6 @@
   padding-left: 0;
   color: var(--text-secondary, #666666);
   transition: color 0.3s ease;
-}
-
-// Timeline dot - hidden/invisible, just for animation target
-.timelineDot {
-  position: absolute;
-  left: -38px;
-  top: 6px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0;
-  will-change: opacity, transform;
-  pointer-events: none;
 }
 
 // Year pill (hidden by default, shown on hover)
@@ -109,90 +94,88 @@
 }
 
 // ====================
-// DETAIL OVERLAY & CARD
+// MODAL (like Lightbox)
 // ====================
 
-// Overlay (fade background)
-.detailOverlay {
+.modalOverlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  inset: 0;
+  z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.3s ease;
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+  padding: 20px;
 }
 
-// Wrapper for detail card + close button
-.detailWrapper {
-  position: relative;
-  max-width: 600px;
-  max-height: 80vh;
-  overflow-y: auto;
-  animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(40px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-}
-
-// Close button (outside/above card)
-.closeButton {
+.modalBackdrop {
   position: absolute;
-  top: -48px;
-  right: 0;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+}
+
+.modalContent {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--border-radius, 0);
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modalCloseButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 11;
   width: 48px;
   height: 48px;
   border: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: currentColor;
-  font-size: 24px;
-  font-weight: 700;
+  background: white;
+  color: var(--text-primary, #000000);
   cursor: pointer;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-  z-index: 1001;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
   &:hover {
-    background: white;
-    transform: rotate(90deg);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    background: var(--accent-secondary, #f5f5f5);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    transform: scale(1.05);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
   }
 }
 
-// Dark mode support
+.modalCard {
+  flex: 1;
+  overflow-y: auto;
+}
+
+// Dark mode
 @media (prefers-color-scheme: dark) {
-  .closeButton {
+  .modalContent {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .modalCloseButton {
     background: rgba(255, 255, 255, 0.1);
     color: white;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.2);
     }
   }
 }
@@ -207,10 +190,6 @@
     padding-left: 48px;
   }
 
-  .timelineDot {
-    left: -32px;
-  }
-
   .yearPill {
     left: -70px;
     padding: 5px 12px;
@@ -221,15 +200,16 @@
     font-size: 16px;
   }
 
-  .detailWrapper {
-    max-width: 90vw;
+  .modalContent {
+    max-width: 95vw;
+    max-height: 85vh;
   }
 
-  .closeButton {
-    top: -40px;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
+  .modalCloseButton {
+    top: 16px;
+    right: 16px;
+    width: 44px;
+    height: 44px;
   }
 }
 
@@ -246,12 +226,6 @@
     gap: 12px;
   }
 
-  .timelineDot {
-    left: -28px;
-    width: 8px;
-    height: 8px;
-  }
-
   .yearPill {
     position: static;
     margin-bottom: 8px;
@@ -263,15 +237,16 @@
     font-size: 15px;
   }
 
-  .detailWrapper {
-    max-width: 95vw;
+  .modalContent {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
   }
 
-  .closeButton {
-    top: 16px;
-    right: 16px;
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
+  .modalCloseButton {
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
   }
 }
