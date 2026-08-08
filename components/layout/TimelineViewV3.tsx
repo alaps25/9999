@@ -36,21 +36,35 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
     setIsMounted(true)
   }, [])
 
-  // Sort projects by year (newest first)
+  // Filter projects: only vcard, hcard, or slide with year tag
+  // Sort by year (newest first)
   const sortedProjects = useMemo(() => {
-    return [...projects].sort((a, b) => {
+    const filtered = projects.filter((p) => {
+      // Must have a year tag
+      const hasYearTag = p.tags?.some(tag => /^\d{4}$/.test(tag))
+      if (!hasYearTag) return false
+
+      // Must be vcard (vertical layout), hcard (horizontal layout), or slide (has slides)
+      const isVcard = p.content?.layout === 'vertical'
+      const isHcard = p.content?.layout === 'horizontal'
+      const isSlide = p.slides && p.slides.length > 0
+
+      return isVcard || isHcard || isSlide
+    })
+
+    return filtered.sort((a, b) => {
       const getYear = (p: Project) => {
         const yearTag = p.tags?.find(tag => /^\d{4}$/.test(tag))
-        return yearTag ? parseInt(yearTag) : new Date().getFullYear()
+        return yearTag ? parseInt(yearTag) : 0
       }
       return getYear(b) - getYear(a)
     })
   }, [projects])
 
-  // Get year for project
+  // Get year for project (guaranteed to have year tag since filtered)
   const getProjectYear = (project: Project): string => {
     const yearTag = project.tags?.find(tag => /^\d{4}$/.test(tag))
-    return yearTag || String(new Date().getFullYear())
+    return yearTag || ''
   }
 
   // Hover animation: title -> accent color, year appears
