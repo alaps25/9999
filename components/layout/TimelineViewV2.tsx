@@ -16,22 +16,24 @@ interface TimelineYear {
 }
 
 /**
- * Enhanced Timeline Component V2
+ * Timeline Component V2 - Minimal Architectural Design
+ *
+ * Design: Only one year is highlighted/focused at a time.
+ * Others fade to background. Hover to change focus.
+ *
  * Features:
- * - Magnetic pull hover effect (year lifts on hover)
- * - Spotlight focus (others fade)
+ * - One year always highlighted (blue glow, prominent)
+ * - Other years faded to 15% opacity in background
+ * - Magnetic pull hover effect
+ * - Click year to expand/show its projects
  * - GSAP animations for smooth interaction
- * - Click to expand year projects
- * - Architectural minimal design
  */
 export function TimelineViewV2({ projects, username }: TimelineViewProps) {
   const [focusedYear, setFocusedYear] = useState<number | null>(null)
-  const [hoveredYear, setHoveredYear] = useState<number | null>(null)
   const [selectedProject, setSelectedProject] = useState<string | null>(null)
-  const timelineRef = useRef<HTMLDivElement>(null)
   const yearRefs = useRef<Map<number, HTMLElement>>(new Map())
 
-  // Group and sort projects by year
+  // Group and sort projects by year (newest first)
   const timelineData: TimelineYear[] = useMemo(() => {
     const grouped = new Map<number, Project[]>()
 
@@ -50,99 +52,100 @@ export function TimelineViewV2({ projects, username }: TimelineViewProps) {
       .sort((a, b) => b.year - a.year)
   }, [projects])
 
-  // Magnetic Pull Hover Effect
-  const createMagneticPullAnimation = (element: HTMLElement, isHovering: boolean) => {
+  // Initialize with first year focused
+  useEffect(() => {
+    if (focusedYear === null && timelineData.length > 0) {
+      setFocusedYear(timelineData[0].year)
+    }
+  }, [timelineData, focusedYear])
+
+  // Spotlight + Magnetic Pull Animation
+  const animateYearFocus = (year: number, isFocusing: boolean) => {
     const tl = gsap.timeline()
 
-    if (isHovering) {
-      // Lift up with elastic ease
-      tl.to(element, {
-        y: -12,
-        duration: 0.4,
-        ease: 'elastic.out(1, 0.5)'
-      }, 0)
+    yearRefs.current.forEach((el, y) => {
+      if (y === year) {
+        // Focused year: lift + glow
+        if (isFocusing) {
+          tl.to(
+            el,
+            {
+              y: -12,
+              boxShadow: '0 12px 32px rgba(0, 102, 255, 0.5), 0 0 20px rgba(0, 102, 255, 0.3)',
+              borderColor: '#0066ff',
+              scale: 1.05,
+              duration: 0.4,
+              ease: 'elastic.out(1, 0.5)'
+            },
+            0
+          )
 
-      // Add blue glow/shadow
-      tl.to(element, {
-        boxShadow: '0 12px 32px rgba(0, 102, 255, 0.4), 0 0 20px rgba(0, 102, 255, 0.2)',
-        borderColor: '#0066ff',
-        duration: 0.3
-      }, 0)
+          tl.to(
+            el.querySelector('.yearNumber'),
+            {
+              color: '#0066ff',
+              textShadow: '0 0 12px rgba(0, 102, 255, 0.5)',
+              duration: 0.3
+            },
+            0
+          )
+        } else {
+          // Reset
+          tl.to(
+            el,
+            {
+              y: 0,
+              boxShadow: '0 2px 8px rgba(0, 102, 255, 0.2)',
+              borderColor: '#0066ff',
+              scale: 1,
+              duration: 0.4,
+              ease: 'elastic.out(1, 0.5)'
+            },
+            0
+          )
 
-      // Scale slightly
-      tl.to(element, {
-        scale: 1.05,
-        duration: 0.3,
-        ease: 'cubic.out'
-      }, 0)
-
-      // Fade all other year markers
-      yearRefs.current.forEach((el, year) => {
-        if (year !== hoveredYear) {
-          tl.to(el, {
-            opacity: 0.15,
-            filter: 'blur(0.5px)',
-            duration: 0.3
-          }, 0)
+          tl.to(
+            el.querySelector('.yearNumber'),
+            {
+              color: '#0066ff',
+              textShadow: 'none',
+              duration: 0.25
+            },
+            0
+          )
         }
-      })
-
-      // Brighten the year number
-      tl.to(element.querySelector('.yearNumber'), {
-        color: '#0066ff',
-        textShadow: '0 0 12px rgba(0, 102, 255, 0.4)',
-        duration: 0.3
-      }, 0)
-    } else {
-      // Reverse animation
-      tl.to(element, {
-        y: 0,
-        duration: 0.4,
-        ease: 'elastic.out(1, 0.5)'
-      }, 0)
-
-      tl.to(element, {
-        boxShadow: '0 0 0 transparent',
-        borderColor: 'currentColor',
-        duration: 0.25
-      }, 0)
-
-      tl.to(element, {
-        scale: 1,
-        duration: 0.3,
-        ease: 'cubic.out'
-      }, 0)
-
-      // Fade all back to normal
-      yearRefs.current.forEach((el) => {
-        tl.to(el, {
-          opacity: 1,
-          filter: 'blur(0px)',
-          duration: 0.3
-        }, 0)
-      })
-
-      // Reset text color
-      tl.to(element.querySelector('.yearNumber'), {
-        color: 'currentColor',
-        textShadow: 'none',
-        duration: 0.25
-      }, 0)
-    }
+      } else {
+        // Non-focused years: fade out
+        tl.to(
+          el,
+          {
+            opacity: isFocusing ? 0.15 : 0.4,
+            filter: isFocusing ? 'blur(0.5px)' : 'blur(0px)',
+            duration: 0.3
+          },
+          0
+        )
+      }
+    })
 
     return tl
   }
 
-  const handleYearHover = (year: number, isHovering: boolean) => {
-    setHoveredYear(isHovering ? year : null)
-    const element = yearRefs.current.get(year)
-    if (element) {
-      createMagneticPullAnimation(element, isHovering)
+  const handleYearHover = (year: number) => {
+    if (focusedYear !== year) {
+      animateYearFocus(year, true)
+    }
+  }
+
+  const handleYearLeave = () => {
+    if (focusedYear !== null) {
+      animateYearFocus(focusedYear, false)
     }
   }
 
   const handleYearClick = (year: number) => {
-    setFocusedYear(focusedYear === year ? null : year)
+    setFocusedYear(year)
+    animateYearFocus(year, false)
   }
 
   if (projects.length === 0) {
@@ -154,36 +157,36 @@ export function TimelineViewV2({ projects, username }: TimelineViewProps) {
   }
 
   return (
-    <div className={styles.timelineContainer} ref={timelineRef}>
+    <div className={styles.timelineContainer}>
       <div className={styles.timeline}>
-        {/* Timeline axis line - dotted */}
+        {/* Vertical timeline line */}
         <div className={styles.timelineAxis} />
 
-        {/* Timeline entries */}
+        {/* Year markers */}
         {timelineData.map((entry) => (
           <div
             key={entry.year}
             className={`${styles.timelineEntry} ${
-              focusedYear === entry.year ? styles.focused : ''
+              focusedYear === entry.year ? styles.isFocused : ''
             }`}
           >
-            {/* Year marker - interactive with magnetic pull effect */}
+            {/* Year button */}
             <button
               ref={(el) => {
                 if (el) yearRefs.current.set(entry.year, el)
               }}
               className={styles.yearMarker}
-              onMouseEnter={() => handleYearHover(entry.year, true)}
-              onMouseLeave={() => handleYearHover(entry.year, false)}
+              onMouseEnter={() => handleYearHover(entry.year)}
+              onMouseLeave={handleYearLeave}
               onClick={() => handleYearClick(entry.year)}
-              aria-label={`View ${entry.year} (${entry.projects.length} projects)`}
+              aria-label={`${entry.year}: ${entry.projects.length} projects`}
               aria-expanded={focusedYear === entry.year}
             >
               <div className={styles.yearNumber}>{entry.year}</div>
-              <div className={styles.yearCount}>{entry.projects.length} projects</div>
+              <div className={styles.yearCount}>{entry.projects.length}</div>
             </button>
 
-            {/* Projects grid - collapse/expand */}
+            {/* Projects grid - only shows when focused */}
             <div className={styles.projectsContainer}>
               {entry.projects.map((project) => (
                 <div
