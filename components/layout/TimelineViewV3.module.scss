@@ -43,24 +43,36 @@
   transition: color 0.3s ease;
 }
 
-// Year pill (hidden by default, shown on hover)
+// Year pill - matches nav button design (low variant + stacked style)
 .yearPill {
   position: absolute;
   left: -80px;
   top: -2px;
-  padding: 6px 14px;
-  border: 1.5px solid currentColor;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
+  padding: 10px 20px;
+  outline: 1px solid var(--accent-primary, #000000);
+  border-radius: var(--border-radius, 0px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
   opacity: 0;
   pointer-events: none;
   will-change: opacity, transform;
   background: transparent;
-  color: currentColor;
+  color: var(--accent-primary, #000000);
   white-space: nowrap;
   transform: translateX(10px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  transition: all 0.3s ease;
+
+  .timelineEntry:hover & {
+    background-color: var(--accent-primary, #000000);
+    color: var(--accent-secondary, #ffffff);
+    outline-color: var(--accent-primary, #000000);
+  }
 }
 
 // Project title - use Inter at max weight
