@@ -1,0 +1,238 @@
+.timelineContainer {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 64px 32px;
+  min-height: 100vh;
+  font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}
+
+.timeline {
+  position: relative;
+  padding-left: 60px;
+}
+
+// Vertical dotted timeline line
+.timelineAxis {
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: repeating-linear-gradient(
+    to bottom,
+    currentColor 0px,
+    currentColor 3px,
+    transparent 3px,
+    transparent 7px
+  );
+  opacity: 0.3;
+}
+
+// Individual timeline entry (one per project)
+.timelineEntry {
+  position: relative;
+  padding-bottom: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding-left: 0;
+  color: var(--text-secondary, #666666);
+  transition: color 0.3s ease;
+}
+
+// Year pill - matches nav button design (low variant + stacked style)
+.yearPill {
+  position: absolute;
+  left: -80px;
+  top: -2px;
+  padding: 10px 20px;
+  outline: 1px solid var(--accent-primary, #000000);
+  border-radius: var(--border-radius, 0px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  will-change: opacity, transform;
+  background: transparent;
+  color: var(--accent-primary, #000000);
+  white-space: nowrap;
+  transform: translateX(10px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  transition: all 0.3s ease;
+
+  .timelineEntry:hover & {
+    background-color: var(--accent-primary, #000000);
+    color: var(--accent-secondary, #ffffff);
+    outline-color: var(--accent-primary, #000000);
+  }
+}
+
+// Project title - use Inter at max weight
+.projectTitle {
+  margin: 0;
+  padding: 0;
+  font-size: 18px;
+  font-weight: 900; // Max weight of Inter
+  line-height: 1.3;
+  color: var(--text-secondary, #666666);
+  transition: color 0.3s ease;
+  will-change: color;
+  letter-spacing: -0.5px;
+  font-family: var(--font-inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+
+  .timelineEntry:hover & {
+    color: var(--accent-primary, #000000);
+  }
+}
+
+// Empty state
+.emptyState {
+  text-align: center;
+  padding: 64px 32px;
+  opacity: 0.5;
+
+  p {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
+// ====================
+// MODAL (like Lightbox)
+// ====================
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalBackdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  cursor: pointer;
+}
+
+.modalContent {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: var(--border-radius, 0);
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.modalCloseButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 11;
+}
+
+.modalCard {
+  flex: 1;
+  overflow-y: auto;
+}
+
+// Dark mode
+@media (prefers-color-scheme: dark) {
+  .modalContent {
+    background: #1a1a1a;
+    color: white;
+  }
+
+  .modalCloseButton {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .timelineContainer {
+    padding: 48px 24px;
+  }
+
+  .timeline {
+    padding-left: 48px;
+  }
+
+  .yearPill {
+    left: -70px;
+    padding: 5px 12px;
+    font-size: 12px;
+  }
+
+  .projectTitle {
+    font-size: 16px;
+  }
+
+  .modalContent {
+    max-width: 95vw;
+    max-height: 85vh;
+  }
+
+  .modalCloseButton {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .timelineContainer {
+    padding: 32px 16px;
+  }
+
+  .timeline {
+    padding-left: 40px;
+  }
+
+  .timelineEntry {
+    gap: 12px;
+  }
+
+  .yearPill {
+    position: static;
+    margin-bottom: 8px;
+    width: 100%;
+    text-align: center;
+  }
+
+  .projectTitle {
+    font-size: 15px;
+  }
+
+  .modalContent {
+    max-width: 100vw;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .modalCloseButton {
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+}

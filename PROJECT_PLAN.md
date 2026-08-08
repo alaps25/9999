@@ -1,220 +1,121 @@
-# Wires Project Plan & Roadmap
+# Wires Portfolio - Project Plan & Backlog
 
-This document is the source of truth for project priorities, in-progress work, and completed features. Update it as work progresses.
-
----
-
-## 📊 Current Status
-
-- **Last Updated**: 2026-08-07
-- **Main Branch**: Stable
-- **Active Development**: Navigation performance optimization
+## Current Status
+- **Last Updated**: 2026-08-08
+- **Main Branch**: production-ready with minimal design system
+- **Current Branch**: `test/comprehensive-coverage` (Timeline + Security fixes)
 
 ---
 
-## 🚀 In Progress
+## Active Initiatives
 
-### Auto-delete Empty Cards on Save
+### 1. GSAP Animation Integration 🎬 (NEXT)
 **Priority**: HIGH  
-**Status**: Starting implementation  
-**Effort**: 1-2 hours
+**Estimated**: 4 weeks  
+**Owner**: Frontend Animation
 
-**Problem**: 
-- Page transitions feel slow (1-3 second delays)
-- Every page change runs multiple Firebase queries:
-  - `getUserIdByUsername()`
-  - `getUserSettings()`
-  - `getPageIdBySlug()`
-  - `getPortfolioDataByPageId()`
+- [ ] Install GSAP and dependencies
+- [ ] Create animation hooks and utilities
+- [ ] Timeline visualization animations (smooth reveals, stagger)
+- [ ] Page transition animations
+- [ ] Card and button micro-interactions
+- [ ] Scroll-triggered animations (ScrollTrigger)
+- [ ] Loading state animations
+- [ ] Form interaction animations
+- [ ] Modal/dialog animations
+- [ ] Performance optimization and testing
 
-**Impact**: High — directly affects UX every time user navigates
-
-**Proposed Solutions** (pick 1-2):
-- [ ] Cache menu items and user data at layout level (not per-page)
-- [ ] Use React Query or SWR for data fetching with caching
-- [ ] Prefetch page data on hover over nav links
-- [ ] Keep sidebar mounted during transitions (no "Loading..." for entire page)
-- [ ] Leverage Next.js server components for static page parts
-
-**Acceptance Criteria**:
-- [ ] Page load time reduced to <500ms for repeat visits
-- [ ] No data fetches for unchanged user/menu data
-- [ ] Smooth transitions (no loading spinner for quick navigations)
-
-**Tests Needed**:
-- [ ] Performance benchmarks before/after
-- [ ] Cache invalidation tests
-- [ ] Prefetch behavior tests
+**Details**: See `GSAP_INTEGRATION_PLAN.md`
 
 ---
 
-## 🔴 High Priority (Next in Queue)
-
-### 2. Auto-delete Empty Cards on Save
+### 2. Timeline Visualization 📅 (IN PROGRESS)
 **Priority**: HIGH  
-**Estimated Effort**: 1-2 hours  
-**Type**: Feature (UX improvement)
+**Status**: Core complete, needs GSAP enhancement  
+**PR**: #37 (feat: add timeline visualization)
 
-**Description**: When user clicks SAVE, automatically delete any cards that have no content.
-
-**Rationale**: Prevents clutter from accidentally added empty cards
-
-**Acceptance Criteria**:
-- [ ] Check each card on save for empty content
-- [ ] Delete cards with empty title AND empty description AND no media
-- [ ] Show brief toast notification when cards are auto-deleted
-- [ ] Don't delete cards that have any content (even just a title)
-- [ ] User can undo the auto-deletion (if undo/redo is implemented)
-
-**Implementation**:
-- Check in the save handler in `app/[username]/[slug]/edit/page.tsx`
-- Add logic to filter out empty sections
-- Display brief feedback to user
-
-**Tests Needed**:
-- [ ] Empty card detection logic
-- [ ] Mixed content cards (only delete if truly empty)
-- [ ] UI feedback appears
+- [x] TimelineView component with year grouping
+- [x] Click-to-expand year interactions
+- [x] Fetch all user projects (fixed)
+- [ ] GSAP animations for smooth reveals
+- [ ] Performance optimization
+- [ ] Mobile responsiveness refinement
 
 ---
 
-## 🟡 Medium Priority
+### 3. Security & Data Integrity ✅ (COMPLETED)
+**Status**: Merged to main
 
-### 3. Explore Portfolio Visualizations (NEW)
-**Priority**: HIGH  
-**Estimated Effort**: 2-3 hours research + design exploration  
-**Type**: Discovery & Design
-
-**Description**: Research and explore different visualization layouts for portfolios beyond standard grid/list view
-
-**Options to Explore**:
-- Timeline view (chronological ordering)
-- Topic/skill-based clustering
-- Interactive graph/network view
-- Category-based visualization
-- Tag cloud or skill matrix
-- 3D/immersive layouts (if feasible)
-
-**Process**:
-- [ ] Find 10-15 coolest portfolio sites and designs
-- [ ] Document URL and key visualization approach
-- [ ] Compare pros/cons for our users
-- [ ] Prototype 2-3 most promising options
-- [ ] Get user feedback and finalize
-
-**Rationale**: Standard grid might not be best for all portfolio types; exploring modern visualization approaches
+- [x] Add ownership verification to deleteProject()
+- [x] Add ownership verification to updateProject()
+- [x] Wrap deletePage() in Firestore transaction
+- [x] Fix updateUsername() race condition
+- [x] Add comprehensive test coverage (65+ tests)
 
 ---
 
-### 4. Card Duplication
-**Priority**: MEDIUM  
-**Estimated Effort**: 2-3 hours  
-**Type**: Feature (workflow improvement)
+### 4. Test Coverage & Quality 🧪 (COMPLETED)
+**Status**: 212+ tests, comprehensive coverage
 
-**Description**: Allow duplicating existing cards with one click
-
-**Rationale**: Faster workflow when creating similar content
-
-**Implementation**:
-- Add "Duplicate" button next to delete in card controls
-- Copy all content except ID (generate new ID)
-- Insert copy directly below original
-
-**Tests Needed**:
-- [ ] Duplication preserves all content
-- [ ] New ID generation works
-- [ ] Placement logic (below original)
+- [x] Firebase query tests
+- [x] Mutations security tests
+- [x] Context integration tests
+- [x] Performance tests
+- [x] API route handler tests
 
 ---
 
-### 5. Bulk Media Upload
-**Priority**: MEDIUM  
-**Estimated Effort**: 2-3 hours  
-**Type**: Feature (UX improvement)
+## Backlog (Future Priorities)
 
-**Description**: Upload multiple images at once to a media carousel
+### Medium Priority
+- [ ] **Enhanced Hover Cards** - Richer preview on hover
+- [ ] **Topic-based Clustering** - Alternative view (timeline + tags)
+- [ ] **Mobile Optimization** - Fully responsive design
+- [ ] **Dark Mode** - Theme switcher
+- [ ] **SEO Optimization** - Meta tags, structured data
 
-**Rationale**: Streamline adding multiple images
-
-**Implementation**:
-- Extend existing media upload to accept multiple files
-- Show upload progress for each file
-- Add to carousel in order
-
-**Tests Needed**:
-- [ ] Multiple file selection
-- [ ] Upload progress tracking
-- [ ] Error handling per-file
+### Low Priority
+- [ ] **Undo/Redo** - Transaction history
+- [ ] **Comments/Feedback** - Add feedback system
+- [ ] **Advanced Search** - Full-text search
 
 ---
 
-## 🟢 Low Priority (Nice to Have)
+## Stack & Design
 
-### 6. Export Portfolio as PDF
-**Priority**: LOW  
-**Type**: Feature
+### Current Tech
+- **Framework**: Next.js 14 (App Router)
+- **Styling**: CSS Modules + SCSS
+- **Animation**: CSS → GSAP (upgrading)
+- **State**: React Context
+- **Database**: Firebase/Firestore
+- **Testing**: Jest
+- **TypeScript**: Strict mode
 
-**Description**: Generate a PDF version of the portfolio
-
-**Rationale**: Useful for sharing offline or printing
-
----
-
-### 7. Custom Fonts
-**Priority**: LOW  
-**Type**: Feature
-
-**Description**: Allow users to choose from a font library
-
-**Rationale**: More design customization options
+### Philosophy
+- Minimal, Bauhaus-inspired aesthetic
+- Precision typography and spacing
+- 60fps animations, <500ms page loads
+- WCAG 2.1 AA accessibility
 
 ---
 
-## ✅ Completed
-
-- ✅ **Page navigation performance optimization** (PR #32) — Reduced load time by caching user-level data
-  - Created PortfolioContext to cache menuItems + bio at user level
-  - Only fetch page-specific projects when navigating between pages
-  - Eliminated duplicate queries for unchanged data
-  - Estimated impact: 60-70% reduction in page transition time
-- ✅ **Deletion confirmation dialog** (PR #29) — Prevent accidental card deletions
-- ✅ **Documentation fixes** (PR #30) — Remove broken refs, update README
-- ✅ **Jest testing infrastructure** (PR #31) — Foundation for unit/integration tests
-- ✅ Multiple card types (V/H/Media/Slides/BigText)
-- ✅ Drag-and-drop reordering (cards and pages)
-- ✅ Rich text editor (TipTap)
-- ✅ Mobile optimization
-- ✅ Search functionality
-- ✅ Move cards between pages
-- ✅ Theme customization (light/dark/auto)
-- ✅ Authentication (email + Google)
-- ✅ Stripe integration
-- ✅ Firebase integration
+## Recent Commits
+```
+0dd98d4 - Fix timeline to fetch all user projects
+a8849d0 - Fix SCSS selector syntax
+b8a1ff2 - Add timeline visualization
+471550c - Add visualization research document
+7dd7779 - Auto-delete empty cards
+```
 
 ---
 
-## 📝 Notes
+## Next Steps
+1. **Install GSAP** - `npm install gsap`
+2. **Create animation utilities** - Reusable hooks & helpers
+3. **Timeline animations** - Smooth reveals and interactions
+4. **Page transitions** - Fade/slide between pages
+5. **Comprehensive testing** - Test animations on all devices
 
-**Technical Debt**:
-- ESLint conflict in worktree (parent .eslintrc.json collision) — cosmetic, doesn't block work
-- Audit vulnerabilities (42 in transitive deps) — pre-existing, not critical
-
-**Testing Strategy**:
-- Jest is now set up with 11 passing tests (slug utilities)
-- Next: Add Firebase mutation tests, component tests, integration tests
-- Goal: >80% coverage for critical paths (auth, mutations, validation)
-
-**Deployment**:
-- Ready for Vercel
-- All recent features tested locally before merge
-- PRs reviewed before merge
-
----
-
-## 🔄 How to Use This Document
-
-1. **Starting New Work**: Pick from "High Priority" section, move to "In Progress"
-2. **During Work**: Update status, checkboxes, and notes in the relevant section
-3. **Completing Work**: Move to "Completed" with PR link
-4. **Reprioritizing**: Move items between priority levels as needed
-5. **Reviewing**: Check this before standup/PRs to ensure nothing is missed
+See `GSAP_INTEGRATION_PLAN.md` for full details.
