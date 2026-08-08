@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import gsap from 'gsap'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { ProjectCard } from '@/components/content/ProjectCard'
 import { Project } from '@/lib/firebase/types'
 import styles from './TimelineViewV3.module.scss'
@@ -217,13 +218,17 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Close button */}
-                  <button
-                    className={styles.modalCloseButton}
-                    onClick={handleCloseDetail}
-                    aria-label="Close project"
-                  >
-                    <X size={24} />
-                  </button>
+                  <div className={styles.modalCloseButton}>
+                    <Button
+                      variant="medium"
+                      size="md"
+                      iconOnly
+                      onClick={handleCloseDetail}
+                      aria-label="Close"
+                    >
+                      <X size={20} />
+                    </Button>
+                  </div>
 
                   {/* Project card (same as portfolio view) */}
                   <div className={styles.modalCard}>
