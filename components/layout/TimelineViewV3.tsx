@@ -92,11 +92,11 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
       }
 
       // Year pill slides in + fades
-      tl.from(
+      tl.to(
         yearPill,
         {
-          opacity: 0,
-          x: 10,
+          opacity: 1,
+          x: 0,
           duration: 0.3,
           ease: 'cubic.out'
         },
@@ -120,7 +120,7 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         yearPill,
         {
           opacity: 0,
-          x: 10,
+          x: -10,
           duration: 0.3,
           ease: 'cubic.out'
         },
