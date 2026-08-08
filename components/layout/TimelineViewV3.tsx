@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef } from 'react'
 import gsap from 'gsap'
+import { ProjectCard } from '@/components/content/ProjectCard'
 import { Project } from '@/lib/firebase/types'
 import styles from './TimelineViewV3.module.scss'
 
@@ -15,16 +16,16 @@ interface TimelineViewProps {
  *
  * Design:
  * - Vertical dotted timeline on left edge
- * - Each PROJECT is one entry (not grouped by year)
- * - Black text by default
- * - On hover: accent color + year pill appears
- * - Year pill matches sidebar navigation pill style
- * - Click to open project detail card (with fade effect)
+ * - Each PROJECT is one entry
+ * - Uses existing ProjectCard component from DS
+ * - Uses Inter font (project default) at highest weight
+ * - On hover: title turns accent color, year pill appears
+ * - Click to show same project card as portfolio view
  */
 export function TimelineViewV3({ projects, username }: TimelineViewProps) {
-  const [selectedProject, setSelectedProject] = useState<string | null>(null)
-  const [accentColor, setAccentColor] = useState<string>('#0066ff') // Default accent
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null)
   const entryRefs = useRef<Map<string, HTMLElement>>(new Map())
+  const yearPillRefs = useRef<Map<string, HTMLElement>>(new Map())
 
   // Sort projects by year (newest first)
   const sortedProjects = useMemo(() => {
@@ -46,23 +47,25 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
   // Hover animation: title -> accent color, year appears
   const animateEntryHover = (projectId: string, isHovering: boolean) => {
     const entry = entryRefs.current.get(projectId)
-    if (!entry) return
+    const yearPill = yearPillRefs.current.get(projectId)
+    if (!entry || !yearPill) return
 
     const tl = gsap.timeline()
     const titleEl = entry.querySelector(`.${styles.projectTitle}`)
-    const yearPill = entry.querySelector(`.${styles.yearPill}`)
 
     if (isHovering) {
       // Title color change
-      tl.to(
-        titleEl,
-        {
-          color: accentColor,
-          duration: 0.3,
-          ease: 'power2.out'
-        },
-        0
-      )
+      if (titleEl) {
+        tl.to(
+          titleEl,
+          {
+            color: 'var(--accent-primary, #0066ff)',
+            duration: 0.3,
+            ease: 'power2.out'
+          },
+          0
+        )
+      }
 
       // Year pill slides in + fades
       tl.from(
@@ -75,17 +78,34 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         },
         0
       )
+
+      // Timeline dot scales
+      const dot = entry.querySelector(`.${styles.timelineDot}`)
+      if (dot) {
+        tl.to(
+          dot,
+          {
+            scale: 1.4,
+            opacity: 1,
+            duration: 0.3,
+            ease: 'power2.out'
+          },
+          0
+        )
+      }
     } else {
       // Reset
-      tl.to(
-        titleEl,
-        {
-          color: 'currentColor',
-          duration: 0.3,
-          ease: 'power2.out'
-        },
-        0
-      )
+      if (titleEl) {
+        tl.to(
+          titleEl,
+          {
+            color: 'currentColor',
+            duration: 0.3,
+            ease: 'power2.out'
+          },
+          0
+        )
+      }
 
       tl.to(
         yearPill,
@@ -97,31 +117,34 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         },
         0
       )
+
+      // Timeline dot resets
+      const dot = entry.querySelector(`.${styles.timelineDot}`)
+      if (dot) {
+        tl.to(
+          dot,
+          {
+            scale: 1,
+            opacity: 0.3,
+            duration: 0.3,
+            ease: 'power2.out'
+          },
+          0
+        )
+      }
     }
   }
 
   const handleProjectClick = (projectId: string) => {
-    setSelectedProject(projectId)
-    // Fade timeline
-    gsap.to(`.${styles.timeline}`, {
-      opacity: 0.2,
-      pointerEvents: 'none',
-      duration: 0.3
-    })
+    setSelectedProjectId(projectId)
   }
 
   const handleCloseDetail = () => {
-    setSelectedProject(null)
-    // Fade timeline back in
-    gsap.to(`.${styles.timeline}`, {
-      opacity: 1,
-      pointerEvents: 'auto',
-      duration: 0.3
-    })
+    setSelectedProjectId(null)
   }
 
   // Get selected project
-  const selected = selectedProject ? sortedProjects.find(p => p.id === selectedProject) : null
+  const selectedProject = selectedProjectId ? sortedProjects.find(p => p.id === selectedProjectId) : null
 
   if (projects.length === 0) {
     return (
@@ -161,7 +184,14 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
             <div className={styles.timelineDot} />
 
             {/* Year pill (hidden by default, shown on hover) */}
-            <div className={styles.yearPill}>{getProjectYear(project)}</div>
+            <div
+              ref={(el) => {
+                if (el) yearPillRefs.current.set(project.id, el)
+              }}
+              className={styles.yearPill}
+            >
+              {getProjectYear(project)}
+            </div>
 
             {/* Project title */}
             <h3 className={styles.projectTitle}>{project.title}</h3>
@@ -169,11 +199,11 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
         ))}
       </div>
 
-      {/* Project detail card - appears on click */}
-      {selected && (
+      {/* Project detail - uses existing ProjectCard component */}
+      {selectedProject && (
         <div className={styles.detailOverlay} onClick={handleCloseDetail}>
           <div
-            className={styles.detailCard}
+            className={styles.detailWrapper}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
@@ -182,30 +212,13 @@ export function TimelineViewV3({ projects, username }: TimelineViewProps) {
             <button
               className={styles.closeButton}
               onClick={handleCloseDetail}
-              aria-label="Close project detail"
+              aria-label="Close project"
             >
               ✕
             </button>
 
-            {/* Project content */}
-            <div className={styles.detailContent}>
-              <div className={styles.detailYear}>{getProjectYear(selected)}</div>
-              <h1 className={styles.detailTitle}>{selected.title}</h1>
-
-              {selected.description && (
-                <p className={styles.detailDescription}>{selected.description}</p>
-              )}
-
-              {selected.tags && selected.tags.length > 0 && (
-                <div className={styles.detailTags}>
-                  {selected.tags.map((tag) => (
-                    <span key={tag} className={styles.detailTag}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Existing ProjectCard component */}
+            <ProjectCard project={selectedProject} variant="project" />
           </div>
         </div>
       )}
